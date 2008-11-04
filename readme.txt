@@ -4,7 +4,7 @@ Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Tags: permalink, url, link, address, custom, redirect
 Requires at least: 2.6
 Tested up to: 2.6.2
-Stable tag: 0.1
+Stable tag: 0.1.1
 
 Set custom permalinks on a per-post, per-tag or per-category basis.
 
