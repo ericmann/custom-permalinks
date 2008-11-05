@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Description: Set custom permalinks on a per-post basis
-Version: 0.1.1
+Version: 0.2
 Author: Michael Tyson
 Author URI: http://michael.tyson.id.au
 */
@@ -77,7 +77,7 @@ function custom_permalinks_term_link($permalink, $term) {
 function custom_permalinks_redirect() {
 	
 	// Get request URI, strip parameters and /'s
-	$request = trim((($pos=strpos($_SERVER["REQUEST_URI"], "?")) ? substr($_SERVER["REQUEST_URI"], 0, $pos) : $_SERVER["REQUEST_URI"]), "/");
+	$request = trim((($pos=strpos($_SERVER['REQUEST_URI'], "?")) ? substr($_SERVER['REQUEST_URI'], 0, $pos) : $_SERVER['REQUEST_URI']), "/");
 	
 	global $wp_query;
 	$post = $wp_query->post;
@@ -111,7 +111,7 @@ function custom_permalinks_redirect() {
 function custom_permalinks_request($query) {
 	
 	// Get request URI, strip parameters and /'s
-	$request = trim((($pos=strpos($_SERVER["REQUEST_URI"], "?")) ? substr($_SERVER["REQUEST_URI"], 0, $pos) : $_SERVER["REQUEST_URI"]), "/");
+	$request = trim((($pos=strpos($_SERVER['REQUEST_URI'], "?")) ? substr($_SERVER['REQUEST_URI'], 0, $pos) : $_SERVER['REQUEST_URI']), "/");
 	if ( !$request ) return $query;
 	
 	$posts = get_posts( array('meta_key' => 'custom_permalink', 'meta_value' => $request) );
@@ -305,7 +305,127 @@ function custom_permalinks_delete_term($id) {
 	update_option('custom_permalink_table', $table);
 }
 
+/**
+ * Options page
+ *
+ * @package CustomPermalinks
+ * @since 0.1
+ */
+function custom_permalinks_options_page() {
+	
+	// Handle revert
+	if ( isset($_REQUEST['revertit']) && isset($_REQUEST['revert']) ) {
+		check_admin_referer('custom-permalinks-bulk');
+		foreach ( (array)$_REQUEST['revert'] as $identifier ) {
+			list($kind, $id) = explode('.', $identifier);
+			switch ( $kind ) {
+				case 'post':
+					delete_post_meta( $id, 'custom_permalink' );
+					break;
+				case 'tag':
+				case 'category':
+					custom_permalinks_delete_term($id);
+					break;
+			}
+		}
+		
+		// Redirect
+		$redirectUrl = $_SERVER['REQUEST_URI'];
+		?>
+		<script type="text/javascript">
+		document.location = '<?php echo $redirectUrl ?>';
+		</script>
+		<?php
+	}
+	
+	?>
+	<div class="wrap">
+	<h2><?php _e('Custom Permalinks', 'custom-permalinks') ?></h2>
+	
+	<form method="post" action="<?php echo $_SERVER['REQUEST_URI'] ?>">
+	<?php wp_nonce_field('custom-permalinks-bulk') ?>
+	
+	<div class="tablenav">
+	<div class="alignleft">
+	<input type="submit" value="<?php _e('Revert', 'custom-permalinks'); ?>" name="revertit" class="button-secondary delete" />
+	</div>
+	<br class="clear" />
+	</div>
+	<br class="clear" />
+	<table class="widefat">
+		<thead>
+		<tr>
+			<th scope="col" class="check-column"><input type="checkbox" /></th>
+			<th scope="col"><?php _e('Title', 'custom-permalinks') ?></th>
+			<th scope="col"><?php _e('Type', 'custom-permalinks') ?></th>
+			<th scope="col"><?php _e('Permalink', 'custom-permalinks') ?></th>
+		</tr>
+		</thead>
+		<tbody>
+	<?php
+	$rows = custom_permalinks_admin_rows();
+	foreach ( $rows as $row ) {
+		?>
+		<tr valign="top">
+		<th scope="row" class="check-column"><input type="checkbox" name="revert[]" value="<?php echo $row['id'] ?>" /></th>
+		<td><strong><a class="row-title" href="<?php echo htmlspecialchars($row['editlink']) ?>"><?php echo htmlspecialchars($row['title']) ?></a></strong></td>
+		<td><?php echo htmlspecialchars($row['type']) ?></td>
+		<td><a href="<?php echo $row['permalink'] ?>" target="_blank" title="Visit <?php echo htmlspecialchars($row['title']) ?>">
+			<?php echo htmlspecialchars($row['permalink']) ?>
+			</a>
+		</td>
+		</tr>
+		<?php
+	}
+	?>
+	</tbody>
+	</table>
+	</form>
+	</div>
+	<?php
+}
 
+/**
+ * Get rows for management view
+ *
+ * @package CustomPermalinks
+ * @since 0.1
+ */
+function custom_permalinks_admin_rows() {
+	$rows = array();
+	
+	// List tags/categories
+	$table = get_option('custom_permalink_table');
+	if ( $table && is_array($table) ) {
+		foreach ( $table as $permalink => $info ) {
+			$row = array();
+			$term = get_term($info['id'], ($info['kind'] == 'tag' ? 'post_tag' : 'category'));
+			$row['id'] = $info['kind'].'.'.$info['id'];
+			$row['permalink'] = get_option('home')."/".$permalink;
+			$row['type'] = ucwords($info['kind']);
+			$row['title'] = $term->name;
+			$row['editlink'] = ( $info['kind'] == 'tag' ? 'edit-tags.php?action=edit&tag_ID='.$info['id'] : 'categories.php?action=edit&cat_ID='.$info['id'] );
+			$rows[] = $row;
+		}
+	}
+	
+	// List posts
+	global $wpdb;
+	$query = "SELECT $wpdb->posts.* FROM $wpdb->posts LEFT JOIN $wpdb->postmeta ON ($wpdb->posts.ID = $wpdb->postmeta.post_id) WHERE ".
+	 			"$wpdb->postmeta.meta_key = 'custom_permalink' AND $wpdb->postmeta.meta_value != ''";
+	$posts = $wpdb->get_results($query);
+	foreach ( $posts as $post ) {
+		$row = array();
+		$row['id'] = 'post.'.$post->ID;
+		$row['permalink'] = get_permalink($post->ID);
+		$row['type'] = 'Post';
+		$row['title'] = $post->post_title;
+		$row['editlink'] = 'post.php?action=edit&post='.$post->ID;
+		$rows[] = $row;
+	}
+	
+	return $rows;
+}
 
 
 /**
@@ -366,6 +486,18 @@ function custom_permalinks_permalink_for_term($id) {
 	return false;
 }
 
+/**
+ * Set up administration
+ *
+ * @package CustomPermalinks
+ * @since 0.1
+ */
+function custom_permalinks_setup_admin() {
+	add_management_page( 'Custom Permalinks', 'Custom Permalinks', 5, __FILE__, 'custom_permalinks_options_page' );
+	if ( is_admin() )
+		wp_enqueue_script('admin-forms');
+}
+
 
 add_action( 'template_redirect', 'custom_permalinks_redirect', 5 );
 add_filter( 'post_link', 'custom_permalinks_post_link', 10, 2 );
@@ -381,5 +513,6 @@ add_action( 'edited_post_tag', 'custom_permalinks_save_tag' );
 add_action( 'edited_category', 'custom_permalinks_save_category' );
 add_action( 'delete_post_tag', 'custom_permalinks_delete_term' );
 add_action( 'delete_post_category', 'custom_permalinks_delete_term' );
+add_action( 'admin_menu', 'custom_permalinks_setup_admin' );
 
 ?>

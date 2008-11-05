@@ -4,7 +4,7 @@ Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Tags: permalink, url, link, address, custom, redirect
 Requires at least: 2.6
 Tested up to: 2.6.2
-Stable tag: 0.1.1
+Stable tag: 0.2
 
 Set custom permalinks on a per-post, per-tag or per-category basis.
 
@@ -20,3 +20,11 @@ over your site structure.
 1. Unzip the package, and upload `custom-permalinks` to the `/wp-content/plugins/` directory
 2. Activate the plugin through the 'Plugins' menu in WordPress
 3. Edit any post, tag or category to set a custom permalink.
+
+== Notes ==
+
+Changelog
+
+0.2: Added 'Custom Permalinks' section under 'Manage' to show existing custom permalinks, and allow reverting to the defaults
+
+0.1.1: Fixed bug with categories
