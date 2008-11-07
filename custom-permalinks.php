@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Description: Set custom permalinks on a per-post basis
-Version: 0.2
+Version: 0.2.1
 Author: Michael Tyson
 Author URI: http://michael.tyson.id.au
 */
@@ -76,8 +76,9 @@ function custom_permalinks_term_link($permalink, $term) {
  */
 function custom_permalinks_redirect() {
 	
-	// Get request URI, strip parameters and /'s
-	$request = trim((($pos=strpos($_SERVER['REQUEST_URI'], "?")) ? substr($_SERVER['REQUEST_URI'], 0, $pos) : $_SERVER['REQUEST_URI']), "/");
+	// Get request URI, strip parameters
+	$request = substr($_SERVER['REQUEST_URI'], 1);
+	if ( ($pos=strpos($request, "?")) ) $request = substr($request, 0, $pos);
 	
 	global $wp_query;
 	$post = $wp_query->post;
@@ -111,17 +112,21 @@ function custom_permalinks_redirect() {
 function custom_permalinks_request($query) {
 	
 	// Get request URI, strip parameters and /'s
-	$request = trim((($pos=strpos($_SERVER['REQUEST_URI'], "?")) ? substr($_SERVER['REQUEST_URI'], 0, $pos) : $_SERVER['REQUEST_URI']), "/");
+	$request = (($pos=strpos($_SERVER['REQUEST_URI'], '?')) ? substr($_SERVER['REQUEST_URI'], 0, $pos) : $_SERVER['REQUEST_URI']);
+	$request = preg_replace('@/+@','/', ltrim($request, '/'));
+	
 	if ( !$request ) return $query;
 	
 	$posts = get_posts( array('meta_key' => 'custom_permalink', 'meta_value' => $request) );
+	if ( !$posts ) // Try adding trailing /
+		$posts = get_posts( array('meta_key' => 'custom_permalink', 'meta_value' => $request.'/') );
 	if ( $posts ) {
 		// A post matches our request
-		return array("p" => $posts[0]->ID);
+		return array('p' => $posts[0]->ID);
 	}
 	
 	$table = get_option('custom_permalink_table');
-	if ( $table && ($term = $table[$request]) ) {
+	if ( $table && ($term = $table[$request]) || ($term = $table[$request.'/']) ) {
 		return array(($term['kind'] == 'category' ? 'category_name' : 'tag') => $term['slug']);
 	}
 
@@ -227,7 +232,7 @@ function custom_permalinks_save_post($id) {
 	
 	delete_post_meta( $id, 'custom_permalink' );
 	if ( $_REQUEST['custom_permalink'] && $_REQUEST['custom_permalink'] != custom_permalinks_original_post_link($id) )
-		add_post_meta( $id, 'custom_permalink', stripcslashes($_REQUEST['custom_permalink']) );
+		add_post_meta( $id, 'custom_permalink', ltrim(stripcslashes($_REQUEST['custom_permalink']),"/") );
 }
 
 
@@ -239,7 +244,7 @@ function custom_permalinks_save_post($id) {
  */
 function custom_permalinks_save_tag($id) {
 	if ( !isset($_REQUEST['custom_permalinks_edit']) ) return;
-	$newPermalink = $_REQUEST['custom_permalink'];
+	$newPermalink = ltrim(stripcslashes($_REQUEST['custom_permalink']),"/");
 	
 	if ( $newPermalink == custom_permalinks_original_tag_link($id) )
 		$newPermalink = ''; 
@@ -256,7 +261,7 @@ function custom_permalinks_save_tag($id) {
  */
 function custom_permalinks_save_category($id) {
 	if ( !isset($_REQUEST['custom_permalinks_edit']) ) return;
-	$newPermalink = $_REQUEST['custom_permalink'];
+	$newPermalink = ltrim(stripcslashes($_REQUEST['custom_permalink']),"/");
 	
 	if ( $newPermalink == custom_permalinks_original_category_link($id) )
 		$newPermalink = ''; 
@@ -436,7 +441,7 @@ function custom_permalinks_admin_rows() {
  */
 function custom_permalinks_original_post_link($post_id) {
 	remove_filter( 'post_link', 'custom_permalinks_post_link', 10, 2 );
-	$originalPermalink = trim(str_replace(get_option('home'), '', get_permalink( $post_id )), '/');
+	$originalPermalink = ltrim(str_replace(get_option('home'), '', get_permalink( $post_id )), '/');
 	add_filter( 'post_link', 'custom_permalinks_post_link', 10, 2 );
 	return $originalPermalink;
 }
@@ -451,7 +456,7 @@ function custom_permalinks_original_post_link($post_id) {
  */
 function custom_permalinks_original_tag_link($tag_id) {
 	remove_filter( 'tag_link', 'custom_permalinks_term_link', 10, 2 );
-	$originalPermalink = trim(str_replace(get_option('home'), '', get_tag_link($tag_id)), '/');
+	$originalPermalink = ltrim(str_replace(get_option('home'), '', get_tag_link($tag_id)), '/');
 	add_filter( 'tag_link', 'custom_permalinks_term_link', 10, 2 );
 	return $originalPermalink;
 }
@@ -464,7 +469,7 @@ function custom_permalinks_original_tag_link($tag_id) {
  */
 function custom_permalinks_original_category_link($category_id) {
 	remove_filter( 'category_link', 'custom_permalinks_term_link', 10, 2 );
-	$originalPermalink = trim(str_replace(get_option('home'), '', get_category_link($category_id)), '/');
+	$originalPermalink = ltrim(str_replace(get_option('home'), '', get_category_link($category_id)), '/');
 	add_filter( 'category_link', 'custom_permalinks_term_link', 10, 2 );
 	return $originalPermalink;
 }
