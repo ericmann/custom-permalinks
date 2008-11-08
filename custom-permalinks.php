@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Description: Set custom permalinks on a per-post basis
-Version: 0.2.1
+Version: 0.2.2
 Author: Michael Tyson
 Author URI: http://michael.tyson.id.au
 */
@@ -77,7 +77,7 @@ function custom_permalinks_term_link($permalink, $term) {
 function custom_permalinks_redirect() {
 	
 	// Get request URI, strip parameters
-	$request = substr($_SERVER['REQUEST_URI'], 1);
+	$request = trim($_SERVER['REQUEST_URI'],'/');
 	if ( ($pos=strpos($request, "?")) ) $request = substr($request, 0, $pos);
 	
 	global $wp_query;
@@ -118,15 +118,17 @@ function custom_permalinks_request($query) {
 	if ( !$request ) return $query;
 	
 	$posts = get_posts( array('meta_key' => 'custom_permalink', 'meta_value' => $request) );
-	if ( !$posts ) // Try adding trailing /
+	if ( !$posts && $request{strlen($request)-1} != '/' ) // Try adding trailing /
 		$posts = get_posts( array('meta_key' => 'custom_permalink', 'meta_value' => $request.'/') );
+	if ( !$posts && $request{strlen($request)-1} == '/' ) // Try removing trailing /
+		$posts = get_posts( array('meta_key' => 'custom_permalink', 'meta_value' => rtrim($request,'/')) );
 	if ( $posts ) {
 		// A post matches our request
 		return array('p' => $posts[0]->ID);
 	}
 	
 	$table = get_option('custom_permalink_table');
-	if ( $table && ($term = $table[$request]) || ($term = $table[$request.'/']) ) {
+	if ( $table && ($term = $table[$request]) || ($term = $table[$request.'/']) || $term = $table[rtrim($request,'/')] ) {
 		return array(($term['kind'] == 'category' ? 'category_name' : 'tag') => $term['slug']);
 	}
 
