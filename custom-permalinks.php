@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Description: Set custom permalinks on a per-post basis
-Version: 0.2.2
+Version: 0.3
 Author: Michael Tyson
 Author URI: http://michael.tyson.id.au
 */
@@ -77,30 +77,39 @@ function custom_permalinks_term_link($permalink, $term) {
 function custom_permalinks_redirect() {
 	
 	// Get request URI, strip parameters
-	$request = trim($_SERVER['REQUEST_URI'],'/');
+	$request = ltrim($_SERVER['REQUEST_URI'],'/');
 	if ( ($pos=strpos($request, "?")) ) $request = substr($request, 0, $pos);
 	
 	global $wp_query;
-	$post = $wp_query->post;
-	if ( !$post ) return;
 	
+	$custom_permalink = '';
+	$original_permalink = '';
+
+	// If the post/tag/category we're on has a custom permalink, get it and check against the request
 	if ( is_single() ) {
+		$post = $wp_query->post;
 		$custom_permalink = get_post_meta( $post->ID, 'custom_permalink', true );
-		if ( $custom_permalink && $custom_permalink != $request ) {
-			// There's a post with a matching custom permalink
-			wp_redirect( get_option('home')."/".$custom_permalink, 301 );
-			exit();
-		}
+		$original_permalink = custom_permalinks_original_post_link( $post->ID );
 	} else if ( is_tag() || is_category() ) {
 		$theTerm = $wp_query->get_queried_object();
-		$permalink = custom_permalinks_permalink_for_term($theTerm->term_id);
-		
-		if ( $permalink && $permalink != $request ) {
-			// The current term has a permalink that isn't where we're currently at
-			wp_redirect( get_option('home')."/".$permalink, 301 );
-			exit();
-		}
+		$custom_permalink = custom_permalinks_permalink_for_term($theTerm->term_id);
+		$original_permalink = (is_tag() ? custom_permalinks_original_tag_link($theTerm->term_id) :
+							   			  custom_permalinks_original_category_link($theTerm->term_id));
 	}
+	
+	if ( $custom_permalink && 
+			(substr($request, 0, strlen($custom_permalink)) != $custom_permalink ||
+			 $request == $custom_permalink."/" ) ) {
+		// Request doesn't match permalink - redirect
+		$url = $custom_permalink;
+		if ( substr($request, 0, strlen($original_permalink)) == $original_permalink &&
+				trim($request,'/') != trim($original_permalink,'/') ) {
+			// This is the original link; we can use this url to derive the new one
+			$url = preg_replace('@//*@', '/', str_replace(trim($original_permalink,'/'), trim($custom_permalink,'/'), $request));
+		}
+		wp_redirect( get_option('home')."/".$url, 301 );
+		exit();
+	}	
 }
 
 /**
@@ -110,31 +119,98 @@ function custom_permalinks_redirect() {
  * @since 0.1
  */
 function custom_permalinks_request($query) {
+	global $wpdb;
+	global $_CPRegisteredURL;
+	
+	// First, search for a matching custom permalink, and if found, generate the corresponding
+	// original URL
+	
+	$originalUrl = '';
 	
 	// Get request URI, strip parameters and /'s
 	$request = (($pos=strpos($_SERVER['REQUEST_URI'], '?')) ? substr($_SERVER['REQUEST_URI'], 0, $pos) : $_SERVER['REQUEST_URI']);
-	$request = preg_replace('@/+@','/', ltrim($request, '/'));
+	$request = preg_replace('@/+@','/', trim($request, '/'));
 	
 	if ( !$request ) return $query;
 	
-	$posts = get_posts( array('meta_key' => 'custom_permalink', 'meta_value' => $request) );
-	if ( !$posts && $request{strlen($request)-1} != '/' ) // Try adding trailing /
-		$posts = get_posts( array('meta_key' => 'custom_permalink', 'meta_value' => $request.'/') );
-	if ( !$posts && $request{strlen($request)-1} == '/' ) // Try removing trailing /
-		$posts = get_posts( array('meta_key' => 'custom_permalink', 'meta_value' => rtrim($request,'/')) );
+	$sql = "SELECT $wpdb->posts.ID, $wpdb->postmeta.meta_value FROM $wpdb->posts ".
+				" LEFT JOIN $wpdb->postmeta ON ($wpdb->posts.ID = $wpdb->postmeta.post_id) WHERE ".
+				"	meta_key = 'custom_permalink' AND ".
+				"	meta_value != '' AND ".
+				"	( meta_value = LEFT('".mysql_escape_string($request)."', LENGTH(meta_value)) OR ".
+				"	  meta_value = LEFT('".mysql_escape_string($request."/")."', LENGTH(meta_value)) )";
+	
+	$posts = $wpdb->get_results($sql);
 	if ( $posts ) {
 		// A post matches our request
-		return array('p' => $posts[0]->ID);
+		
+		// Preserve this url for later if it's the same as the permalink (no extra stuff)
+		if ( trim($request,'/') == trim($posts[0]->meta_value,'/') ) 
+			$_CPRegisteredURL = $request;
+		
+		$originalUrl = 	str_replace(trim($posts[0]->meta_value,'/'),
+							       custom_permalinks_original_post_link($posts[0]->ID),
+								   trim($request,'/'));
 	}
 	
-	$table = get_option('custom_permalink_table');
-	if ( $table && ($term = $table[$request]) || ($term = $table[$request.'/']) || $term = $table[rtrim($request,'/')] ) {
-		return array(($term['kind'] == 'category' ? 'category_name' : 'tag') => $term['slug']);
+	if ( !$originalUrl ) {
+		$table = get_option('custom_permalink_table');
+		if ( !$table ) return $query;
+	
+		foreach ( array_keys($table) as $permalink ) {
+			if ( $permalink == substr($request, 0, strlen($permalink)) || $permalink == substr($request."/", 0, strlen($permalink)) ) {
+				$term = $table[$permalink];
+				
+				// Preserve this url for later if it's the same as the permalink (no extra stuff)
+				if ( trim($request,'/') == trim($permalink,'/') ) 
+					$_CPRegisteredURL = $request;
+				
+				
+				if ( $term['kind'] == 'category ') {
+					$originalUrl = str_replace(trim($permalink,'/'),
+										       custom_permalinks_original_category_link($term['id']),
+											   trim($request,'/'));
+				} else {
+					$originalUrl = str_replace(trim($permalink,'/'),
+										       custom_permalinks_original_tag_link($term['id']),
+											   trim($request,'/'));
+				}
+			}
+		}
 	}
-
+	
+	if ( $originalUrl ) {
+		$originalUrl = 	preg_replace("@//*@", "/", $originalUrl);
+		
+		// Now we have the original URL, run this back through WP->parse_request, in order to
+		// parse parameters properly.  We set $_SERVER variables to fool the function.
+		$oldPathInfo = $_SERVER["PATH_INFO"]; $oldRequestUri = $_SERVER["REQUEST_URI"];
+		$_SERVER["PATH_INFO"] = $originalUrl; $_SERVER["REQUEST_URI"] = $originalUrl;
+		
+		remove_filter( 'request', 'custom_permalinks_request', 10, 1 );
+		global $wp;
+		$wp->parse_request();
+		$query = $wp->query_vars;
+		add_filter( 'request', 'custom_permalinks_request', 10, 1 );
+		
+		$_SERVER["PATH_INFO"] = $oldPathInfo; $_SERVER["REQUEST_URI"] = $oldRequestUri;
+	}
 	return $query;
 }
 
+/**
+ * Filter to handle trailing slashes correctly
+ *
+ * @package CustomPermalinks
+ * @since 0.3
+ */
+function custom_permalinks_trailingslash($string, $type) {
+	global $_CPRegisteredURL;
+	if ( trim($_CPRegisteredURL,'/') == trim($string,'/') ) {
+		return $_CPRegisteredURL;
+	}
+	return $string;
+}
 
 
 /**
@@ -511,6 +587,7 @@ add_filter( 'post_link', 'custom_permalinks_post_link', 10, 2 );
 add_filter( 'tag_link', 'custom_permalinks_term_link', 10, 2 );
 add_filter( 'category_link', 'custom_permalinks_term_link', 10, 2 );
 add_filter( 'request', 'custom_permalinks_request', 10, 1 );
+add_filter( 'user_trailingslashit', 'custom_permalinks_trailingslash', 10, 2 );
 
 add_action( 'edit_form_advanced', 'custom_permalinks_post_options' );
 add_action( 'edit_tag_form', 'custom_permalinks_term_options' );

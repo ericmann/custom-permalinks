@@ -4,7 +4,7 @@ Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Tags: permalink, url, link, address, custom, redirect
 Requires at least: 2.6
 Tested up to: 2.6.2
-Stable tag: 0.2.2
+Stable tag: 0.3
 
 Set custom permalinks on a per-post, per-tag or per-category basis.
 
@@ -22,6 +22,8 @@ over your site structure.
 3. Edit any post, tag or category to set a custom permalink.
 
 == Changelog ==
+
+0.3: Largely rewritten to provide more robust handling of trailing slashes, proper support for trailing URL components (eg. paging)
 
 0.2.2: Fixed bug with not matching permalinks when / appended to the URL, and workaround for infinite redirect when another plugin is enforcing trailing /
 
