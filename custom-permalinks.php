@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Description: Set custom permalinks on a per-post basis
-Version: 0.3.1
+Version: 0.4
 Author: Michael Tyson
 Author URI: http://michael.tyson.id.au
 */
@@ -40,6 +40,22 @@ Author URI: http://michael.tyson.id.au
  */
 function custom_permalinks_post_link($permalink, $post) {
 	$custom_permalink = get_post_meta( $post->ID, 'custom_permalink', true );
+	if ( $custom_permalink ) {
+		return get_option('home')."/".$custom_permalink;
+	}
+	
+	return $permalink;
+}
+
+
+/**
+ * Filter to replace the page permalink with the custom one
+ *
+ * @package CustomPermalinks
+ * @since 0.4
+ */
+function custom_permalinks_page_link($permalink, $page) {
+	$custom_permalink = get_post_meta( $page, 'custom_permalink', true );
 	if ( $custom_permalink ) {
 		return get_option('home')."/".$custom_permalink;
 	}
@@ -86,10 +102,10 @@ function custom_permalinks_redirect() {
 	$original_permalink = '';
 
 	// If the post/tag/category we're on has a custom permalink, get it and check against the request
-	if ( is_single() ) {
+	if ( is_single() || is_page() ) {
 		$post = $wp_query->post;
 		$custom_permalink = get_post_meta( $post->ID, 'custom_permalink', true );
-		$original_permalink = custom_permalinks_original_post_link( $post->ID );
+		$original_permalink = ( $post->post_type == 'post' ? custom_permalinks_original_post_link( $post->ID ) : custom_permalinks_original_page_link( $post->ID ) );
 	} else if ( is_tag() || is_category() ) {
 		$theTerm = $wp_query->get_queried_object();
 		$custom_permalink = custom_permalinks_permalink_for_term($theTerm->term_id);
@@ -106,6 +122,7 @@ function custom_permalinks_redirect() {
 				trim($request,'/') != trim($original_permalink,'/') ) {
 			// This is the original link; we can use this url to derive the new one
 			$url = preg_replace('@//*@', '/', str_replace(trim($original_permalink,'/'), trim($custom_permalink,'/'), $request));
+			$url = preg_replace('@([^?]*)&@', '\1?', $url);
 		}
 		wp_redirect( get_option('home')."/".$url, 301 );
 		exit();
@@ -133,7 +150,7 @@ function custom_permalinks_request($query) {
 	
 	if ( !$request ) return $query;
 	
-	$sql = "SELECT $wpdb->posts.ID, $wpdb->postmeta.meta_value FROM $wpdb->posts ".
+	$sql = "SELECT $wpdb->posts.ID, $wpdb->postmeta.meta_value, $wpdb->posts.post_type FROM $wpdb->posts ".
 				" LEFT JOIN $wpdb->postmeta ON ($wpdb->posts.ID = $wpdb->postmeta.post_id) WHERE ".
 				"	meta_key = 'custom_permalink' AND ".
 				"	meta_value != '' AND ".
@@ -148,9 +165,11 @@ function custom_permalinks_request($query) {
 		if ( trim($request,'/') == trim($posts[0]->meta_value,'/') ) 
 			$_CPRegisteredURL = $request;
 		
-		$originalUrl = 	str_replace(trim($posts[0]->meta_value,'/'),
-							       custom_permalinks_original_post_link($posts[0]->ID),
-								   trim($request,'/'));
+		$originalUrl = 	str_replace( trim($posts[0]->meta_value,'/' ),
+							       ( $posts[0]->post_type == 'post' ? 
+											custom_permalinks_original_post_link($posts[0]->ID) 
+											: custom_permalinks_original_page_link($posts[0]->ID) ),
+								   trim( $request,'/' ) );
 	}
 	
 	if ( !$originalUrl ) {
@@ -180,20 +199,37 @@ function custom_permalinks_request($query) {
 	}
 	
 	if ( $originalUrl ) {
-		$originalUrl = 	preg_replace("@//*@", "/", $originalUrl);
+		
+		if ( ($pos=strpos($_SERVER['REQUEST_URI'], '?')) !== false ) {
+			$queryVars = substr($_SERVER['REQUEST_URI'], $pos+1);
+			$originalUrl .= (strpos($originalUrl, '?') === false ? '?' : '&') . $queryVars;
+		}
 		
 		// Now we have the original URL, run this back through WP->parse_request, in order to
 		// parse parameters properly.  We set $_SERVER variables to fool the function.
-		$oldPathInfo = $_SERVER["PATH_INFO"]; $oldRequestUri = $_SERVER["REQUEST_URI"];
-		$_SERVER["PATH_INFO"] = $originalUrl; $_SERVER["REQUEST_URI"] = $originalUrl;
+		$oldPathInfo = $_SERVER['PATH_INFO']; $oldRequestUri = $_SERVER['REQUEST_URI']; $oldQueryString = $_SERVER['QUERY_STRING'];
+		$_SERVER['PATH_INFO'] = $originalUrl; $_SERVER['REQUEST_URI'] = $originalUrl; 
+		$_SERVER['QUERY_STRING'] = (($pos=strpos($originalUrl, '?')) !== false ? substr($originalUrl, $pos+1) : '');
+		parse_str($_SERVER['QUERY_STRING'], $queryArray);
+		$oldValues = array();
+		if ( is_array($queryArray) )
+		foreach ( $queryArray as $key => $value ) {
+			$oldValues[$key] = $_REQUEST[$key];
+			$_REQUEST[$key] = $_GET[$key] = $value;
+		}
 		
+		// Re-run the filter, now with original environment in place
 		remove_filter( 'request', 'custom_permalinks_request', 10, 1 );
 		global $wp;
 		$wp->parse_request();
 		$query = $wp->query_vars;
 		add_filter( 'request', 'custom_permalinks_request', 10, 1 );
 		
-		$_SERVER["PATH_INFO"] = $oldPathInfo; $_SERVER["REQUEST_URI"] = $oldRequestUri;
+		// Restore values
+		$_SERVER['PATH_INFO'] = $oldPathInfo; $_SERVER['REQUEST_URI'] = $oldRequestUri; $_SERVER['QUERY_STRING'] = $oldQueryString;
+		foreach ( $oldValues as $key => $value ) {
+			$_REQUEST[$key] = $value;
+		}
 	}
 	return $query;
 }
@@ -226,6 +262,32 @@ function custom_permalinks_trailingslash($string, $type) {
  * @since 0.1
  */
 function custom_permalinks_post_options() {
+	global $post;
+	$post_id = $post;
+	if (is_object($post_id)) {
+		$post_id = $post_id->ID;
+	}
+	
+	$permalink = get_post_meta( $post_id, 'custom_permalink', true );
+	
+	?>
+	<div class="postbox closed">
+	<h3><?php _e('Custom Permalink', 'custom-permalink') ?></h3>
+	<div class="inside">
+	<?php custom_permalinks_form($permalink, custom_permalinks_original_post_link($post_id)); ?>
+	</div>
+	</div>
+	<?php
+}
+
+
+/**
+ * Per-page options
+ *
+ * @package CustomPermalinks
+ * @since 0.4
+ */
+function custom_permalinks_page_options() {
 	global $post;
 	$post_id = $post;
 	if (is_object($post_id)) {
@@ -403,6 +465,7 @@ function custom_permalinks_options_page() {
 			list($kind, $id) = explode('.', $identifier);
 			switch ( $kind ) {
 				case 'post':
+				case 'page':
 					delete_post_meta( $id, 'custom_permalink' );
 					break;
 				case 'tag':
@@ -492,7 +555,7 @@ function custom_permalinks_admin_rows() {
 		}
 	}
 	
-	// List posts
+	// List posts/pages
 	global $wpdb;
 	$query = "SELECT $wpdb->posts.* FROM $wpdb->posts LEFT JOIN $wpdb->postmeta ON ($wpdb->posts.ID = $wpdb->postmeta.post_id) WHERE ".
 	 			"$wpdb->postmeta.meta_key = 'custom_permalink' AND $wpdb->postmeta.meta_value != ''";
@@ -501,9 +564,9 @@ function custom_permalinks_admin_rows() {
 		$row = array();
 		$row['id'] = 'post.'.$post->ID;
 		$row['permalink'] = get_permalink($post->ID);
-		$row['type'] = 'Post';
+		$row['type'] = ucwords( $post->post_type );
 		$row['title'] = $post->post_title;
-		$row['editlink'] = 'post.php?action=edit&post='.$post->ID;
+		$row['editlink'] = ( $post->post_type == 'post' ? 'post.php' : 'page.php' ) . '?action=edit&post='.$post->ID;
 		$rows[] = $row;
 	}
 	
@@ -512,7 +575,7 @@ function custom_permalinks_admin_rows() {
 
 
 /**
- * Get original permalink
+ * Get original permalink for post
  *
  * @package CustomPermalinks
  * @since 0.1
@@ -524,6 +587,18 @@ function custom_permalinks_original_post_link($post_id) {
 	return $originalPermalink;
 }
 
+/**
+ * Get original permalink for page
+ *
+ * @package CustomPermalinks
+ * @since 0.4
+ */
+function custom_permalinks_original_page_link($post_id) {
+	remove_filter( 'page_link', 'custom_permalinks_page_link', 10, 2 );
+	$originalPermalink = ltrim(str_replace(get_option('home'), '', get_permalink( $post_id )), '/');
+	add_filter( 'page_link', 'custom_permalinks_page_link', 10, 2 );
+	return $originalPermalink;
+}
 
 
 /**
@@ -584,12 +659,14 @@ function custom_permalinks_setup_admin() {
 
 add_action( 'template_redirect', 'custom_permalinks_redirect', 5 );
 add_filter( 'post_link', 'custom_permalinks_post_link', 10, 2 );
+add_filter( 'page_link', 'custom_permalinks_page_link', 10, 2 );
 add_filter( 'tag_link', 'custom_permalinks_term_link', 10, 2 );
 add_filter( 'category_link', 'custom_permalinks_term_link', 10, 2 );
 add_filter( 'request', 'custom_permalinks_request', 10, 1 );
 add_filter( 'user_trailingslashit', 'custom_permalinks_trailingslash', 10, 2 );
 
 add_action( 'edit_form_advanced', 'custom_permalinks_post_options' );
+add_action( 'edit_page_form', 'custom_permalinks_page_options' );
 add_action( 'edit_tag_form', 'custom_permalinks_term_options' );
 add_action( 'edit_category_form', 'custom_permalinks_term_options' );
 add_action( 'save_post', 'custom_permalinks_save_post' );
