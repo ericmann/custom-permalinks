@@ -300,7 +300,7 @@ function custom_permalinks_page_options() {
 	<div class="postbox closed">
 	<h3><?php _e('Custom Permalink', 'custom-permalink') ?></h3>
 	<div class="inside">
-	<?php custom_permalinks_form($permalink, custom_permalinks_original_post_link($post_id)); ?>
+	<?php custom_permalinks_form($permalink, custom_permalinks_original_page_link($post_id)); ?>
 	</div>
 	</div>
 	<?php
@@ -344,15 +344,17 @@ function custom_permalinks_term_options($object) {
 function custom_permalinks_form($permalink, $original="") {
 	?>
 	<input value="true" type="hidden" name="custom_permalinks_edit" />
+	<input value="<?php echo htmlspecialchars($permalink) ?>" type="hidden" name="custom_permalink" id="custom_permalink" />
+	
 	<table class="form-table" id="custom_permalink_form">
 	<tr>
 		<th scope="row"><?php _e('Custom Permalink', 'custom-permalink') ?></th>
 		<td>
 			<?php echo get_option('home') ?>/
-			<input type="text" name="custom_permalink" class="text" value="<?php echo htmlspecialchars($permalink ? $permalink : $original) ?>" 
-				style="width: 300px; <?php if ( !$permalink ) echo 'color: #ddd;' ?>"
+			<input type="text" class="text" value="<?php echo htmlspecialchars($permalink ? $permalink : $original) ?>" 
+				style="width: 250px; <?php if ( !$permalink ) echo 'color: #ddd;' ?>"
 			 	onfocus="if ( this.value == '<?php echo htmlspecialchars($original) ?>' ) { this.value = ''; this.style.color = '#000'; }" 
-				onblur="if ( this.value == '' ) { this.value = '<?php echo htmlspecialchars($original) ?>'; this.style.color = '#ddd'; }"/><br />
+				onblur="document.getElementById('custom_permalink').value = this.value; if ( this.value == '' ) { this.value = '<?php echo htmlspecialchars($original) ?>'; this.style.color = '#ddd'; }"/><br />
 			<small><?php _e('Leave blank to disable', 'custom-permalink') ?></small>
 		</td>
 	</tr>
