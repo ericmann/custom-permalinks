@@ -4,7 +4,7 @@ Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Tags: permalink, url, link, address, custom, redirect
 Requires at least: 2.6
 Tested up to: 2.6.2
-Stable tag: 0.5
+Stable tag: 0.4.1
 
 Set custom permalinks on a per-post, per-tag or per-category basis.
 
@@ -23,7 +23,7 @@ over your site structure.
 
 == Changelog ==
 
-0.5: WP 2.7 compatability fixes; fix for bug encountered when publishing a draft, or reverting to draft status, and fix for placeholder permalink value for pages
+0.4.1: WP 2.7 compatability fixes; fix for bug encountered when publishing a draft, or reverting to draft status, and fix for placeholder permalink value for pages
 
 0.4:  Support for pages, and a fix for draft posts/pages
 
