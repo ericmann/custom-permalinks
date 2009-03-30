@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Description: Set custom permalinks on a per-post basis
-Version: 0.4.1
+Version: 0.5
 Author: Michael Tyson
 Author URI: http://michael.tyson.id.au
 */
@@ -93,7 +93,8 @@ function custom_permalinks_term_link($permalink, $term) {
 function custom_permalinks_redirect() {
 	
 	// Get request URI, strip parameters
-	$request = ltrim($_SERVER['REQUEST_URI'],'/');
+	$url = parse_url(get_bloginfo('url')); $url = $url['path'];
+	$request = ltrim(substr($_SERVER['REQUEST_URI'], strlen($url)),'/');
 	if ( ($pos=strpos($request, "?")) ) $request = substr($request, 0, $pos);
 	
 	global $wp_query;
@@ -145,7 +146,9 @@ function custom_permalinks_request($query) {
 	$originalUrl = '';
 	
 	// Get request URI, strip parameters and /'s
-	$request = (($pos=strpos($_SERVER['REQUEST_URI'], '?')) ? substr($_SERVER['REQUEST_URI'], 0, $pos) : $_SERVER['REQUEST_URI']);
+	$url = parse_url(get_bloginfo('url')); $url = $url['path'];
+	$request = ltrim(substr($_SERVER['REQUEST_URI'], strlen($url)),'/');
+	$request = (($pos=strpos($request, '?')) ? substr($request, 0, $pos) : $request);
 	$request = preg_replace('@/+@','/', trim($request, '/'));
 	
 	if ( !$request ) return $query;
