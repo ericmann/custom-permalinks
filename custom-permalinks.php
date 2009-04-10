@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Description: Set custom permalinks on a per-post basis
-Version: 0.5
+Version: 0.5.1
 Author: Michael Tyson
 Author URI: http://michael.tyson.id.au
 */
@@ -320,10 +320,12 @@ function custom_permalinks_term_options($object) {
 
 	$permalink = custom_permalinks_permalink_for_term($object->term_id);
 	
-	$originalPermalink = ($object->taxonomy == 'post_tag' ? 
-								custom_permalinks_original_tag_link($object->term_id) :
-								custom_permalinks_original_category_link($object->term_id) );
-	
+	if ( $object->term_id ) {
+    	$originalPermalink = ($object->taxonomy == 'post_tag' ? 
+    								custom_permalinks_original_tag_link($object->term_id) :
+    								custom_permalinks_original_category_link($object->term_id) );
+    }
+    	
 	custom_permalinks_form($permalink, $originalPermalink);
 
 	// Move the save button to above this form
@@ -673,10 +675,13 @@ add_filter( 'user_trailingslashit', 'custom_permalinks_trailingslash', 10, 2 );
 add_action( 'edit_form_advanced', 'custom_permalinks_post_options' );
 add_action( 'edit_page_form', 'custom_permalinks_page_options' );
 add_action( 'edit_tag_form', 'custom_permalinks_term_options' );
+add_action( 'add_tag_form', 'custom_permalinks_term_options' );
 add_action( 'edit_category_form', 'custom_permalinks_term_options' );
 add_action( 'save_post', 'custom_permalinks_save_post' );
 add_action( 'edited_post_tag', 'custom_permalinks_save_tag' );
 add_action( 'edited_category', 'custom_permalinks_save_category' );
+add_action( 'create_post_tag', 'custom_permalinks_save_tag' );
+add_action( 'create_category', 'custom_permalinks_save_category' );
 add_action( 'delete_post_tag', 'custom_permalinks_delete_term' );
 add_action( 'delete_post_category', 'custom_permalinks_delete_term' );
 add_action( 'admin_menu', 'custom_permalinks_setup_admin' );

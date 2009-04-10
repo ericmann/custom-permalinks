@@ -4,7 +4,7 @@ Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Tags: permalink, url, link, address, custom, redirect
 Requires at least: 2.6
 Tested up to: 2.6.2
-Stable tag: 0.5
+Stable tag: 0.5.1
 
 Set custom permalinks on a per-post, per-tag or per-category basis.
 
@@ -22,6 +22,8 @@ over your site structure.
 3. Edit any post, page, tag or category to set a custom permalink.
 
 == Changelog ==
+
+0.5.1: Compatibility fix for WP 2.7's tag/category pages
 
 0.5: Support for Wordpress sites in subdirectories (i.e., not located at the webroot)
 
