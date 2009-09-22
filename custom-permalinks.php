@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Description: Set custom permalinks on a per-post basis
-Version: 0.5.1
+Version: 0.5.2
 Author: Michael Tyson
 Author URI: http://michael.tyson.id.au
 */
@@ -158,17 +158,19 @@ function custom_permalinks_request($query) {
 				"	meta_key = 'custom_permalink' AND ".
 				"	meta_value != '' AND ".
 				"	( meta_value = LEFT('".mysql_escape_string($request)."', LENGTH(meta_value)) OR ".
-				"	  meta_value = LEFT('".mysql_escape_string($request."/")."', LENGTH(meta_value)) )";
+				"	  meta_value = LEFT('".mysql_escape_string($request."/")."', LENGTH(meta_value)) ) ".
+				" ORDER BY LENGTH(meta_value) DESC";
 	
 	$posts = $wpdb->get_results($sql);
+	
 	if ( $posts ) {
 		// A post matches our request
 		
 		// Preserve this url for later if it's the same as the permalink (no extra stuff)
 		if ( trim($request,'/') == trim($posts[0]->meta_value,'/') ) 
 			$_CPRegisteredURL = $request;
-		
-		$originalUrl = 	preg_replace('@/+@', '/', str_replace( trim($posts[0]->meta_value,'/' ),
+				
+		$originalUrl = 	preg_replace('@/+@', '/', str_replace( trim($posts[0]->meta_value,'/'),
 							       ( $posts[0]->post_type == 'post' ? 
 											custom_permalinks_original_post_link($posts[0]->ID) 
 											: custom_permalinks_original_page_link($posts[0]->ID) ),
@@ -200,7 +202,7 @@ function custom_permalinks_request($query) {
 			}
 		}
 	}
-	
+		
 	if ( $originalUrl ) {
 		
 		if ( ($pos=strpos($_SERVER['REQUEST_URI'], '?')) !== false ) {
@@ -211,7 +213,7 @@ function custom_permalinks_request($query) {
 		// Now we have the original URL, run this back through WP->parse_request, in order to
 		// parse parameters properly.  We set $_SERVER variables to fool the function.
 		$oldPathInfo = $_SERVER['PATH_INFO']; $oldRequestUri = $_SERVER['REQUEST_URI']; $oldQueryString = $_SERVER['QUERY_STRING'];
-		$_SERVER['PATH_INFO'] = $originalUrl; $_SERVER['REQUEST_URI'] = $originalUrl; 
+		$_SERVER['REQUEST_URI'] = $_SERVER['PATH_INFO'] = '/'.ltrim($originalUrl,'/');
 		$_SERVER['QUERY_STRING'] = (($pos=strpos($originalUrl, '?')) !== false ? substr($originalUrl, $pos+1) : '');
 		parse_str($_SERVER['QUERY_STRING'], $queryArray);
 		$oldValues = array();
@@ -220,7 +222,7 @@ function custom_permalinks_request($query) {
 			$oldValues[$key] = $_REQUEST[$key];
 			$_REQUEST[$key] = $_GET[$key] = $value;
 		}
-		
+				
 		// Re-run the filter, now with original environment in place
 		remove_filter( 'request', 'custom_permalinks_request', 10, 1 );
 		global $wp;
@@ -234,6 +236,7 @@ function custom_permalinks_request($query) {
 			$_REQUEST[$key] = $value;
 		}
 	}
+
 	return $query;
 }
 
