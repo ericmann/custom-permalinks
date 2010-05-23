@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Description: Set custom permalinks on a per-post basis
-Version: 0.5.2
+Version: 0.5.3
 Author: Michael Tyson
 Author URI: http://michael.tyson.id.au
 */
@@ -246,10 +246,10 @@ function custom_permalinks_request($query) {
  * @package CustomPermalinks
  * @since 0.3
  */
-function custom_permalinks_trailingslash($string, $type) {
+function custom_permalinks_trailingslash($string, $type) {     
 	global $_CPRegisteredURL;
 	if ( trim($_CPRegisteredURL,'/') == trim($string,'/') ) {
-		return $_CPRegisteredURL;
+		return ($string{0} == '/' ? '/' : '') . $_CPRegisteredURL;
 	}
 	return $string;
 }

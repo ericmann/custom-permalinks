@@ -4,7 +4,7 @@ Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Tags: permalink, url, link, address, custom, redirect
 Requires at least: 2.6
 Tested up to: 2.8.4
-Stable tag: 0.5.2
+Stable tag: 0.5.3
 
 Set custom permalinks on a per-post, per-tag or per-category basis.
 
@@ -23,24 +23,61 @@ over your site structure.
 
 == Changelog ==
 
-0.5.2: Bugfix for matching posts when there are multiple posts that match parts of the query
+= 0.5.3 =
 
-0.5.1: Compatibility fix for WP 2.7's tag/category pages
+ * Fix for invalid URL redirect (eg. http://domain.comfolder/file.html instead of http://domain.com/folder/file.html) when using permalinks without a trailing slash (like .../%postname%.html)
 
-0.5: Support for Wordpress sites in subdirectories (i.e., not located at the webroot)
+= 0.5.2 =
 
-0.4.1: WP 2.7 compatability fixes; fix for bug encountered when publishing a draft, or reverting to draft status, and fix for placeholder permalink value for pages
+ * Bugfix for matching posts when there are multiple posts that match parts of the query
 
-0.4:  Support for pages, and a fix for draft posts/pages
+= 0.5.1 =
 
-0.3.1: Discovered a typo that broke categories
+ * Compatibility fix for WP 2.7's tag/category pages
 
-0.3: Largely rewritten to provide more robust handling of trailing slashes, proper support for trailing URL components (eg. paging)
+= 0.5 =
 
-0.2.2: Fixed bug with not matching permalinks when / appended to the URL, and workaround for infinite redirect when another plugin is enforcing trailing /
+ * Support for Wordpress sites in subdirectories (i.e., not located at the webroot)
 
-0.2.1: Better handling of trailing slashes
+= 0.4.1 =
 
-0.2: Added 'Custom Permalinks' section under 'Manage' to show existing custom permalinks, and allow reverting to the defaults
+ * WP 2.7 compatability fixes; fix for bug encountered when publishing a draft, or reverting to draft status, and fix for placeholder permalink value for pages
 
-0.1.1: Fixed bug with categories
+= 0.4 =
+
+ * Support for pages, and a fix for draft posts/pages
+
+= 0.3.1 =
+
+ * Discovered a typo that broke categories
+
+= 0.3 =
+
+ * Largely rewritten to provide more robust handling of trailing slashes, proper support for trailing URL components (eg. paging)
+
+= 0.2.2 =
+
+ * Fixed bug with not matching permalinks when / appended to the URL, and workaround for infinite redirect when another plugin is enforcing trailing /
+
+= 0.2.1 =
+
+ * Better handling of trailing slashes
+
+= 0.2 =
+
+ * Added 'Custom Permalinks' section under 'Manage' to show existing custom permalinks, and allow reverting to the defaults
+
+= 0.1.1 =
+
+ * Fixed bug with categories
+
+== Upgrade Notice ==
+
+
+== Changelog ==
+
+= 0.5.3 =
+
+If you are having problems with Custom Permalinks causing an invalid URL redirect (eg. http://domain.comfolder/file.html instead of http://domain.com/folder/file.html),
+upgrade: This has now been fixed.
+
