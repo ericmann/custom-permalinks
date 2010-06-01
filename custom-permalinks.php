@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Description: Set custom permalinks on a per-post basis
-Version: 0.5.3
+Version: 0.6
 Author: Michael Tyson
 Author URI: http://michael.tyson.id.au
 */
@@ -119,6 +119,7 @@ function custom_permalinks_redirect() {
 			 $request == $custom_permalink."/" ) ) {
 		// Request doesn't match permalink - redirect
 		$url = $custom_permalink;
+
 		if ( substr($request, 0, strlen($original_permalink)) == $original_permalink &&
 				trim($request,'/') != trim($original_permalink,'/') ) {
 			// This is the original link; we can use this url to derive the new one
@@ -149,7 +150,7 @@ function custom_permalinks_request($query) {
 	$url = parse_url(get_bloginfo('url')); $url = $url['path'];
 	$request = ltrim(substr($_SERVER['REQUEST_URI'], strlen($url)),'/');
 	$request = (($pos=strpos($request, '?')) ? substr($request, 0, $pos) : $request);
-	$request = preg_replace('@/+@','/', trim($request, '/'));
+	$request_noslash = preg_replace('@/+@','/', trim($request, '/'));
 	
 	if ( !$request ) return $query;
 	
@@ -157,8 +158,8 @@ function custom_permalinks_request($query) {
 				" LEFT JOIN $wpdb->postmeta ON ($wpdb->posts.ID = $wpdb->postmeta.post_id) WHERE ".
 				"	meta_key = 'custom_permalink' AND ".
 				"	meta_value != '' AND ".
-				"	( meta_value = LEFT('".mysql_escape_string($request)."', LENGTH(meta_value)) OR ".
-				"	  meta_value = LEFT('".mysql_escape_string($request."/")."', LENGTH(meta_value)) ) ".
+				"	( meta_value = LEFT('".mysql_escape_string($request_noslash)."', LENGTH(meta_value)) OR ".
+				"	  meta_value = LEFT('".mysql_escape_string($request_noslash."/")."', LENGTH(meta_value)) ) ".
 				" ORDER BY LENGTH(meta_value) DESC";
 	
 	$posts = $wpdb->get_results($sql);
@@ -167,14 +168,14 @@ function custom_permalinks_request($query) {
 		// A post matches our request
 		
 		// Preserve this url for later if it's the same as the permalink (no extra stuff)
-		if ( trim($request,'/') == trim($posts[0]->meta_value,'/') ) 
+		if ( $request_noslash == trim($posts[0]->meta_value,'/') ) 
 			$_CPRegisteredURL = $request;
 				
 		$originalUrl = 	preg_replace('@/+@', '/', str_replace( trim($posts[0]->meta_value,'/'),
 							       ( $posts[0]->post_type == 'post' ? 
 											custom_permalinks_original_post_link($posts[0]->ID) 
 											: custom_permalinks_original_page_link($posts[0]->ID) ),
-								   trim( $request,'/' ) ));
+								   $request_noslash ));
 	}
 	
 	if ( !$originalUrl ) {
@@ -182,11 +183,11 @@ function custom_permalinks_request($query) {
 		if ( !$table ) return $query;
 	
 		foreach ( array_keys($table) as $permalink ) {
-			if ( $permalink == substr($request, 0, strlen($permalink)) || $permalink == substr($request."/", 0, strlen($permalink)) ) {
+			if ( $permalink == substr($request_noslash, 0, strlen($permalink)) || $permalink == substr($request_noslash."/", 0, strlen($permalink)) ) {
 				$term = $table[$permalink];
 				
 				// Preserve this url for later if it's the same as the permalink (no extra stuff)
-				if ( trim($request,'/') == trim($permalink,'/') ) 
+				if ( $request_noslash == trim($permalink,'/') ) 
 					$_CPRegisteredURL = $request;
 				
 				
@@ -254,15 +255,39 @@ function custom_permalinks_trailingslash($string, $type) {
 	return $string;
 }
 
-
 /**
  ** Administration
  **
  **/
+ 
+/**
+ * Per-post/page options (Wordpress > 2.9)
+ *
+ * @package CustomPermalinks
+ * @since 0.6
+ */
+function custom_permalink_get_sample_permalink_html($html, $id, $new_title, $new_slug) {
+	$permalink = get_post_meta( $id, 'custom_permalink', true );
+	$post = &get_post($id);
+	
+	ob_start();
+	?>
+	<?php custom_permalinks_form($permalink, ($post->post_type == "post" ? custom_permalinks_original_post_link($id) : custom_permalinks_original_page_link($id)), false); ?>
+	<?php
+	$content = ob_get_contents();
+	ob_end_clean();
+    
+    if ( 'publish' == $post->post_status ) {
+		$view_post = 'post' == $post->post_type ? __('View Post') : __('View Page');
+	}
+	
+	return '<strong>' . __('Permalink:') . "</strong>\n" . $content . 
+	     ( isset($view_post) ? "<span id='view-post-btn'><a href='$permalink' class='button' target='_blank'>$view_post</a></span>\n" : "" );
+}
 
 
 /**
- * Per-post options
+ * Per-post options (Wordpress < 2.9)
  *
  * @package CustomPermalinks
  * @since 0.1
@@ -288,7 +313,7 @@ function custom_permalinks_post_options() {
 
 
 /**
- * Per-page options
+ * Per-page options (Wordpress < 2.9)
  *
  * @package CustomPermalinks
  * @since 0.4
@@ -349,25 +374,31 @@ function custom_permalinks_term_options($object) {
  * @package CustomPermalinks
  * @since 0.1
  */
-function custom_permalinks_form($permalink, $original="") {
+function custom_permalinks_form($permalink, $original="", $renderContainers=true) {
 	?>
 	<input value="true" type="hidden" name="custom_permalinks_edit" />
 	<input value="<?php echo htmlspecialchars($permalink) ?>" type="hidden" name="custom_permalink" id="custom_permalink" />
 	
+	<?php if ( $renderContainers ) : ?>
 	<table class="form-table" id="custom_permalink_form">
 	<tr>
 		<th scope="row"><?php _e('Custom Permalink', 'custom-permalink') ?></th>
 		<td>
+	<?php endif; ?>
 			<?php echo get_option('home') ?>/
 			<input type="text" class="text" value="<?php echo htmlspecialchars($permalink ? $permalink : $original) ?>" 
 				style="width: 250px; <?php if ( !$permalink ) echo 'color: #ddd;' ?>"
 			 	onfocus="if ( this.value == '<?php echo htmlspecialchars($original) ?>' ) { this.value = ''; this.style.color = '#000'; }" 
-				onblur="document.getElementById('custom_permalink').value = this.value; if ( this.value == '' ) { this.value = '<?php echo htmlspecialchars($original) ?>'; this.style.color = '#ddd'; }"/><br />
+				onblur="document.getElementById('custom_permalink').value = this.value; if ( this.value == '' ) { this.value = '<?php echo htmlspecialchars($original) ?>'; this.style.color = '#ddd'; }"/>
+	<?php if ( $renderContainers ) : ?>				
+			<br />
 			<small><?php _e('Leave blank to disable', 'custom-permalink') ?></small>
+			
 		</td>
 	</tr>
 	</table>
 	<?php
+	endif;
 }
 
 
@@ -667,6 +698,8 @@ function custom_permalinks_setup_admin() {
 }
 
 
+$v = explode('.', get_bloginfo('version'));
+
 add_action( 'template_redirect', 'custom_permalinks_redirect', 5 );
 add_filter( 'post_link', 'custom_permalinks_post_link', 10, 2 );
 add_filter( 'page_link', 'custom_permalinks_page_link', 10, 2 );
@@ -675,12 +708,18 @@ add_filter( 'category_link', 'custom_permalinks_term_link', 10, 2 );
 add_filter( 'request', 'custom_permalinks_request', 10, 1 );
 add_filter( 'user_trailingslashit', 'custom_permalinks_trailingslash', 10, 2 );
 
-add_action( 'edit_form_advanced', 'custom_permalinks_post_options' );
-add_action( 'edit_page_form', 'custom_permalinks_page_options' );
+if ( $v[0] >= 2 ) {
+    add_filter( 'get_sample_permalink_html', 'custom_permalink_get_sample_permalink_html', 10, 4 );
+} else {
+    add_action( 'edit_form_advanced', 'custom_permalinks_post_options' );
+    add_action( 'edit_page_form', 'custom_permalinks_page_options' );
+}
+
 add_action( 'edit_tag_form', 'custom_permalinks_term_options' );
 add_action( 'add_tag_form', 'custom_permalinks_term_options' );
 add_action( 'edit_category_form', 'custom_permalinks_term_options' );
 add_action( 'save_post', 'custom_permalinks_save_post' );
+add_action( 'save_page', 'custom_permalinks_save_post' );
 add_action( 'edited_post_tag', 'custom_permalinks_save_tag' );
 add_action( 'edited_category', 'custom_permalinks_save_category' );
 add_action( 'create_post_tag', 'custom_permalinks_save_tag' );

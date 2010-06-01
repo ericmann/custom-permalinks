@@ -3,8 +3,8 @@
 Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
 Tags: permalink, url, link, address, custom, redirect
 Requires at least: 2.6
-Tested up to: 2.8.4
-Stable tag: 0.5.3
+Tested up to: 2.9.2
+Stable tag: 0.6
 
 Set custom permalinks on a per-post, per-tag or per-category basis.
 
@@ -22,6 +22,11 @@ over your site structure.
 3. Edit any post, page, tag or category to set a custom permalink.
 
 == Changelog ==
+
+= 0.6 =
+
+ * Fix infinite redirect for permalinks ending in a / (critical fix)
+ * Moved post/page permalinks settings to top of edit form, replacing prior permalink display
 
 = 0.5.3 =
 
@@ -75,6 +80,10 @@ over your site structure.
 
 
 == Changelog ==
+
+= 0.6 =
+
+In the process of fixing one issue, version 0.5.3 broke permalinks ending with a "/". Update now to fix this, and sorry for the inconvenience!
 
 = 0.5.3 =
 
