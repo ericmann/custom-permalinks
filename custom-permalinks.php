@@ -281,6 +281,7 @@ function custom_permalink_get_sample_permalink_html($html, $id, $new_title, $new
 		$view_post = 'post' == $post->post_type ? __('View Post') : __('View Page');
 	}
 	
+	list($permalink, $post_name) = get_sample_permalink($post->ID, $new_title, $new_slug);
 	return '<strong>' . __('Permalink:') . "</strong>\n" . $content . 
 	     ( isset($view_post) ? "<span id='view-post-btn'><a href='$permalink' class='button' target='_blank'>$view_post</a></span>\n" : "" );
 }
