@@ -1,12 +1,12 @@
 <?php
 /*
 Plugin Name: Custom Permalinks
-Plugin URI: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
-Donate link: http://michael.tyson.id.au/wordpress/plugins/custom-permalinks
+Plugin URI: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
+Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Description: Set custom permalinks on a per-post basis
-Version: 0.6
+Version: 0.6.1
 Author: Michael Tyson
-Author URI: http://michael.tyson.id.au
+Author URI: http://atastypixel.com/blog
 */
 
 /*  Copyright 2008 Michael Tyson <mike@tyson.id.au>
@@ -267,7 +267,7 @@ function custom_permalinks_trailingslash($string, $type) {
  * @since 0.6
  */
 function custom_permalink_get_sample_permalink_html($html, $id, $new_title, $new_slug) {
-	$permalink = get_post_meta( $id, 'custom_permalink', true );
+    $permalink = get_post_meta( $id, 'custom_permalink', true );
 	$post = &get_post($id);
 	
 	ob_start();
@@ -281,7 +281,15 @@ function custom_permalink_get_sample_permalink_html($html, $id, $new_title, $new
 		$view_post = 'post' == $post->post_type ? __('View Post') : __('View Page');
 	}
 	
-	list($permalink, $post_name) = get_sample_permalink($post->ID, $new_title, $new_slug);
+	if ( preg_match("@view-post-btn.*?href='([^']+)'@s", $html, $matches) ) {
+	    $permalink = $matches[1];
+    } else {
+        list($permalink, $post_name) = get_sample_permalink($post->ID, $new_title, $new_slug);
+        if ( false !== strpos($permalink, '%postname%') || false !== strpos($permalink, '%pagename%') ) {
+            $permalink = str_replace(array('%pagename%','%postname%'), $post_name, $permalink);
+        }
+    }
+	
 	return '<strong>' . __('Permalink:') . "</strong>\n" . $content . 
 	     ( isset($view_post) ? "<span id='view-post-btn'><a href='$permalink' class='button' target='_blank'>$view_post</a></span>\n" : "" );
 }
