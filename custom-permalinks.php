@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Description: Set custom permalinks on a per-post basis
-Version: 0.7.2
+Version: 0.7.3
 Author: Michael Tyson
 Author URI: http://atastypixel.com/blog
 */
@@ -183,11 +183,13 @@ function custom_permalinks_request($query) {
 	}
 	
 	if ( !$originalUrl ) {
+	    // See if any terms have a matching permalink
 		$table = get_option('custom_permalink_table');
 		if ( !$table ) return $query;
 	
 		foreach ( array_keys($table) as $permalink ) {
-			if ( $permalink == substr($request_noslash, 0, strlen($permalink)) || $permalink == substr($request_noslash."/", 0, strlen($permalink)) ) {
+			if ( $permalink == substr($request_noslash, 0, strlen($permalink)) ||
+			     $permalink == substr($request_noslash."/", 0, strlen($permalink)) ) {
 				$term = $table[$permalink];
 				
 				// Preserve this url for later if it's the same as the permalink (no extra stuff)
@@ -209,6 +211,7 @@ function custom_permalinks_request($query) {
 	}
 		
 	if ( $originalUrl ) {
+		$originalUrl = str_replace('//', '/', $originalUrl);
 		
 		if ( ($pos=strpos($_SERVER['REQUEST_URI'], '?')) !== false ) {
 			$queryVars = substr($_SERVER['REQUEST_URI'], $pos+1);
@@ -358,7 +361,6 @@ function custom_permalinks_page_options() {
  * @since 0.1
  */
 function custom_permalinks_term_options($object) {
-
 	$permalink = custom_permalinks_permalink_for_term($object->term_id);
 	
 	if ( $object->term_id ) {
