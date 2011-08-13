@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Description: Set custom permalinks on a per-post basis
-Version: 0.7.3
+Version: 0.7.4
 Author: Michael Tyson
 Author URI: http://atastypixel.com/blog
 */
@@ -403,8 +403,8 @@ function custom_permalinks_form($permalink, $original="", $renderContainers=true
 			<?php echo get_home_url() ?>/
 			<input type="text" class="text" value="<?php echo htmlspecialchars($permalink ? $permalink : $original) ?>" 
 				style="width: 250px; <?php if ( !$permalink ) echo 'color: #ddd;' ?>"
-			 	onfocus="if ( this.value == '<?php echo htmlspecialchars($original) ?>' ) { this.value = ''; this.style.color = '#000'; }" 
-				onblur="document.getElementById('custom_permalink').value = this.value; if ( this.value == '' ) { this.value = '<?php echo htmlspecialchars($original) ?>'; this.style.color = '#ddd'; }"/>
+			 	onfocus="if ( this.style.color = '#ddd' ) { this.style.color = '#000'; }" 
+				onblur="document.getElementById('custom_permalink').value = this.value; if ( this.value == '' || this.value == '<?php echo htmlspecialchars($original) ?>' ) { this.value = '<?php echo htmlspecialchars($original) ?>'; this.style.color = '#ddd'; }"/>
 	<?php if ( $renderContainers ) : ?>				
 			<br />
 			<small><?php _e('Leave blank to disable', 'custom-permalink') ?></small>
@@ -427,8 +427,19 @@ function custom_permalinks_save_post($id) {
 	if ( !isset($_REQUEST['custom_permalinks_edit']) ) return;
 	
 	delete_post_meta( $id, 'custom_permalink' );
-	if ( $_REQUEST['custom_permalink'] && $_REQUEST['custom_permalink'] != custom_permalinks_original_post_link($id) )
-		add_post_meta( $id, 'custom_permalink', ltrim(stripcslashes($_REQUEST['custom_permalink']),"/") );
+	if ( $_REQUEST['custom_permalink'] && $_REQUEST['custom_permalink'] != custom_permalinks_original_post_link($id) ) {
+	    if ( dirname($_REQUEST['custom_permalink']) == dirname(custom_permalinks_original_post_link($id)) ) {
+	        // Just slug changed
+	        $post = wp_get_single_post($id, ARRAY_A);
+	        $new_name = basename($_REQUEST['custom_permalink']);
+	        $new_name = wp_unique_post_slug($new_name, $id, $post['post_status'], $post['post_type'], $post['post_parent']);
+	        
+	        global $wpdb;
+	        $wpdb->update($wpdb->posts, array('post_name' => $new_name), array('ID' => $id));
+	    } else {
+		    add_post_meta( $id, 'custom_permalink', ltrim(stripcslashes($_REQUEST['custom_permalink']),"/") );
+	    }
+	}
 }
 
 
@@ -622,7 +633,7 @@ function custom_permalinks_admin_rows() {
 		$row['permalink'] = get_permalink($post->ID);
 		$row['type'] = ucwords( $post->post_type );
 		$row['title'] = $post->post_title;
-		$row['editlink'] = ( $post->post_type == 'post' ? 'post.php' : 'page.php' ) . '?action=edit&post='.$post->ID;
+		$row['editlink'] = 'post.php?action=edit&post='.$post->ID;
 		$rows[] = $row;
 	}
 	
