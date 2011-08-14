@@ -103,9 +103,6 @@ over your site structure.
 
 == Upgrade Notice ==
 
-
-== Changelog ==
-
 = 0.6.1 =
 
  * This release fixes a bug causing incorrect link from the "View Post"/"View Page" button in the editor
