@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Description: Set custom permalinks on a per-post basis
-Version: 0.7.4
+Version: 0.7.5
 Author: Michael Tyson
 Author URI: http://atastypixel.com/blog
 */
@@ -427,8 +427,12 @@ function custom_permalinks_save_post($id) {
 	if ( !isset($_REQUEST['custom_permalinks_edit']) ) return;
 	
 	delete_post_meta( $id, 'custom_permalink' );
-	if ( $_REQUEST['custom_permalink'] && $_REQUEST['custom_permalink'] != custom_permalinks_original_post_link($id) ) {
-	    if ( dirname($_REQUEST['custom_permalink']) == dirname(custom_permalinks_original_post_link($id)) ) {
+	
+	$original_link = custom_permalinks_original_post_link($id);
+	
+	if ( $_REQUEST['custom_permalink'] && $_REQUEST['custom_permalink'] != $original_link ) {
+	    if ( dirname($_REQUEST['custom_permalink']) == dirname($original_link) &&
+	         ($_REQUEST['custom_permalink']{strlen($_REQUEST['custom_permalink'])-1} == "/") == ($original_link{strlen($original_link)-1} == "/") ) {
 	        // Just slug changed
 	        $post = wp_get_single_post($id, ARRAY_A);
 	        $new_name = basename($_REQUEST['custom_permalink']);
