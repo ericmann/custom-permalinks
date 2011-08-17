@@ -23,6 +23,10 @@ over your site structure.
 
 == Changelog ==
 
+= 0.7.6 =
+
+ * Fixed permalink saving issue when not using ".../%postname%" or similar permalink structure
+
 = 0.7.5 =
 
  * Fixed issue where changes to trailing "/" aren't saved

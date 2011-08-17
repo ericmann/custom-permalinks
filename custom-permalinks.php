@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Description: Set custom permalinks on a per-post basis
-Version: 0.7.5
+Version: 0.7.6
 Author: Michael Tyson
 Author URI: http://atastypixel.com/blog
 */
@@ -429,9 +429,11 @@ function custom_permalinks_save_post($id) {
 	delete_post_meta( $id, 'custom_permalink' );
 	
 	$original_link = custom_permalinks_original_post_link($id);
+	$permalink_structure = get_option('permalink_structure');
 	
 	if ( $_REQUEST['custom_permalink'] && $_REQUEST['custom_permalink'] != $original_link ) {
-	    if ( dirname($_REQUEST['custom_permalink']) == dirname($original_link) &&
+	    if ( substr($permalink_structure, strlen($permalink_structure)-strlen('/%postname%')) == '/%postname%' &&
+	         dirname($_REQUEST['custom_permalink']) == dirname($original_link) &&
 	         ($_REQUEST['custom_permalink']{strlen($_REQUEST['custom_permalink'])-1} == "/") == ($original_link{strlen($original_link)-1} == "/") ) {
 	        // Just slug changed
 	        $post = wp_get_single_post($id, ARRAY_A);
@@ -722,7 +724,7 @@ function custom_permalinks_permalink_for_term($id) {
  * @since 0.1
  */
 function custom_permalinks_setup_admin() {
-	add_management_page( 'Custom Permalinks', 'Custom Permalinks', 5, __FILE__, 'custom_permalinks_options_page' );
+	add_management_page( 'Custom Permalinks', 'Custom Permalinks', 5, 'custom_permalinks', 'custom_permalinks_options_page' );
 	if ( is_admin() )
 		wp_enqueue_script('admin-forms');
 }
