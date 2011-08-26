@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Description: Set custom permalinks on a per-post basis
-Version: 0.7.6
+Version: 0.7.7
 Author: Michael Tyson
 Author URI: http://atastypixel.com/blog
 */
@@ -211,7 +211,7 @@ function custom_permalinks_request($query) {
 	}
 		
 	if ( $originalUrl ) {
-		$originalUrl = str_replace('//', '/', $originalUrl);
+		$originalUrl = str_replace('//', '/', urldecode($originalUrl));
 		
 		if ( ($pos=strpos($_SERVER['REQUEST_URI'], '?')) !== false ) {
 			$queryVars = substr($_SERVER['REQUEST_URI'], $pos+1);
@@ -432,19 +432,7 @@ function custom_permalinks_save_post($id) {
 	$permalink_structure = get_option('permalink_structure');
 	
 	if ( $_REQUEST['custom_permalink'] && $_REQUEST['custom_permalink'] != $original_link ) {
-	    if ( substr($permalink_structure, strlen($permalink_structure)-strlen('/%postname%')) == '/%postname%' &&
-	         dirname($_REQUEST['custom_permalink']) == dirname($original_link) &&
-	         ($_REQUEST['custom_permalink']{strlen($_REQUEST['custom_permalink'])-1} == "/") == ($original_link{strlen($original_link)-1} == "/") ) {
-	        // Just slug changed
-	        $post = wp_get_single_post($id, ARRAY_A);
-	        $new_name = basename($_REQUEST['custom_permalink']);
-	        $new_name = wp_unique_post_slug($new_name, $id, $post['post_status'], $post['post_type'], $post['post_parent']);
-	        
-	        global $wpdb;
-	        $wpdb->update($wpdb->posts, array('post_name' => $new_name), array('ID' => $id));
-	    } else {
-		    add_post_meta( $id, 'custom_permalink', ltrim(stripcslashes($_REQUEST['custom_permalink']),"/") );
-	    }
+	    add_post_meta( $id, 'custom_permalink', ltrim(stripcslashes($_REQUEST['custom_permalink']),"/") );
 	}
 }
 
