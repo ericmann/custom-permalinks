@@ -23,6 +23,11 @@ over your site structure.
 
 == Changelog ==
 
+= 0.7.8 =
+
+ * Support for non-ASCII characters in URLs
+ * Fixed bug where adding a new tag when saving a post with a custom permalink attaches that permalink to the new tag
+
 = 0.7.7 =
 
  * Minor change to permalink saving routine to fix some possible issues

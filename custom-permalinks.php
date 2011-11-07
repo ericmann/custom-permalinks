@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Description: Set custom permalinks on a per-post basis
-Version: 0.7.7
+Version: 0.7.8
 Author: Michael Tyson
 Author URI: http://atastypixel.com/blog
 */
@@ -392,7 +392,7 @@ function custom_permalinks_term_options($object) {
 function custom_permalinks_form($permalink, $original="", $renderContainers=true) {
 	?>
 	<input value="true" type="hidden" name="custom_permalinks_edit" />
-	<input value="<?php echo htmlspecialchars($permalink) ?>" type="hidden" name="custom_permalink" id="custom_permalink" />
+	<input value="<?php echo htmlspecialchars(urldecode($permalink)) ?>" type="hidden" name="custom_permalink" id="custom_permalink" />
 	
 	<?php if ( $renderContainers ) : ?>
 	<table class="form-table" id="custom_permalink_form">
@@ -401,7 +401,7 @@ function custom_permalinks_form($permalink, $original="", $renderContainers=true
 		<td>
 	<?php endif; ?>
 			<?php echo get_home_url() ?>/
-			<input type="text" class="text" value="<?php echo htmlspecialchars($permalink ? $permalink : $original) ?>" 
+			<input type="text" class="text" value="<?php echo htmlspecialchars($permalink ? urldecode($permalink) : $original) ?>" 
 				style="width: 250px; <?php if ( !$permalink ) echo 'color: #ddd;' ?>"
 			 	onfocus="if ( this.style.color = '#ddd' ) { this.style.color = '#000'; }" 
 				onblur="document.getElementById('custom_permalink').value = this.value; if ( this.value == '' || this.value == '<?php echo htmlspecialchars($original) ?>' ) { this.value = '<?php echo htmlspecialchars($original) ?>'; this.style.color = '#ddd'; }"/>
@@ -432,7 +432,7 @@ function custom_permalinks_save_post($id) {
 	$permalink_structure = get_option('permalink_structure');
 	
 	if ( $_REQUEST['custom_permalink'] && $_REQUEST['custom_permalink'] != $original_link ) {
-	    add_post_meta( $id, 'custom_permalink', ltrim(stripcslashes($_REQUEST['custom_permalink']),"/") );
+	    add_post_meta( $id, 'custom_permalink', str_replace('%2F', '/', urlencode(ltrim(stripcslashes($_REQUEST['custom_permalink']),"/"))) );
 	}
 }
 
@@ -444,14 +444,14 @@ function custom_permalinks_save_post($id) {
  * @since 0.1
  */
 function custom_permalinks_save_tag($id) {
-	if ( !isset($_REQUEST['custom_permalinks_edit']) ) return;
+	if ( !isset($_REQUEST['custom_permalinks_edit']) || isset($_REQUEST['post_ID']) ) return;
 	$newPermalink = ltrim(stripcslashes($_REQUEST['custom_permalink']),"/");
 	
 	if ( $newPermalink == custom_permalinks_original_tag_link($id) )
 		$newPermalink = ''; 
 	
 	$term = get_term($id, 'post_tag');
-	custom_permalinks_save_term($term, $newPermalink);
+	custom_permalinks_save_term($term, str_replace('%2F', '/', urlencode($newPermalink)));
 }
 
 /**
@@ -461,14 +461,14 @@ function custom_permalinks_save_tag($id) {
  * @since 0.1
  */
 function custom_permalinks_save_category($id) {
-	if ( !isset($_REQUEST['custom_permalinks_edit']) ) return;
+	if ( !isset($_REQUEST['custom_permalinks_edit']) || isset($_REQUEST['post_ID']) ) return;
 	$newPermalink = ltrim(stripcslashes($_REQUEST['custom_permalink']),"/");
 	
 	if ( $newPermalink == custom_permalinks_original_category_link($id) )
 		$newPermalink = ''; 
 	
 	$term = get_term($id, 'category');
-	custom_permalinks_save_term($term, $newPermalink);
+	custom_permalinks_save_term($term, str_replace('%2F', '/', urlencode($newPermalink)));
 }
 
 /**
@@ -578,7 +578,7 @@ function custom_permalinks_options_page() {
 		<td><strong><a class="row-title" href="<?php echo htmlspecialchars($row['editlink']) ?>"><?php echo htmlspecialchars($row['title']) ?></a></strong></td>
 		<td><?php echo htmlspecialchars($row['type']) ?></td>
 		<td><a href="<?php echo $row['permalink'] ?>" target="_blank" title="Visit <?php echo htmlspecialchars($row['title']) ?>">
-			<?php echo htmlspecialchars($row['permalink']) ?>
+			<?php echo htmlspecialchars(urldecode($row['permalink'])) ?>
 			</a>
 		</td>
 		</tr>
