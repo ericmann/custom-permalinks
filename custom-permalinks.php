@@ -401,10 +401,10 @@ function custom_permalinks_form($permalink, $original="", $renderContainers=true
 		<td>
 	<?php endif; ?>
 			<?php echo get_home_url() ?>/
-			<input type="text" class="text" value="<?php echo htmlspecialchars($permalink ? urldecode($permalink) : $original) ?>" 
+			<input type="text" class="text" value="<?php echo htmlspecialchars($permalink ? urldecode($permalink) : urldecode($original)) ?>" 
 				style="width: 250px; <?php if ( !$permalink ) echo 'color: #ddd;' ?>"
 			 	onfocus="if ( this.style.color = '#ddd' ) { this.style.color = '#000'; }" 
-				onblur="document.getElementById('custom_permalink').value = this.value; if ( this.value == '' || this.value == '<?php echo htmlspecialchars($original) ?>' ) { this.value = '<?php echo htmlspecialchars($original) ?>'; this.style.color = '#ddd'; }"/>
+				onblur="document.getElementById('custom_permalink').value = this.value; if ( this.value == '' || this.value == '<?php echo htmlspecialchars(urldecode($original)) ?>' ) { this.value = '<?php echo htmlspecialchars(urldecode($original)) ?>'; this.style.color = '#ddd'; }"/>
 	<?php if ( $renderContainers ) : ?>				
 			<br />
 			<small><?php _e('Leave blank to disable', 'custom-permalink') ?></small>
