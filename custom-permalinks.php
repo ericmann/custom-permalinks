@@ -211,7 +211,7 @@ function custom_permalinks_request($query) {
 	}
 		
 	if ( $originalUrl ) {
-		$originalUrl = str_replace('//', '/', urldecode($originalUrl));
+		$originalUrl = str_replace('//', '/', $originalUrl);
 		
 		if ( ($pos=strpos($_SERVER['REQUEST_URI'], '?')) !== false ) {
 			$queryVars = substr($_SERVER['REQUEST_URI'], $pos+1);
@@ -220,8 +220,8 @@ function custom_permalinks_request($query) {
 		
 		// Now we have the original URL, run this back through WP->parse_request, in order to
 		// parse parameters properly.  We set $_SERVER variables to fool the function.
-		$oldPathInfo = $_SERVER['PATH_INFO']; $oldRequestUri = $_SERVER['REQUEST_URI']; $oldQueryString = $_SERVER['QUERY_STRING'];
-		$_SERVER['REQUEST_URI'] = $_SERVER['PATH_INFO'] = '/'.ltrim($originalUrl,'/');
+		$oldRequestUri = $_SERVER['REQUEST_URI']; $oldQueryString = $_SERVER['QUERY_STRING'];
+		$_SERVER['REQUEST_URI'] = '/'.ltrim($originalUrl,'/');
 		$_SERVER['QUERY_STRING'] = (($pos=strpos($originalUrl, '?')) !== false ? substr($originalUrl, $pos+1) : '');
 		parse_str($_SERVER['QUERY_STRING'], $queryArray);
 		$oldValues = array();
@@ -239,7 +239,7 @@ function custom_permalinks_request($query) {
 		add_filter( 'request', 'custom_permalinks_request', 10, 1 );
 		
 		// Restore values
-		$_SERVER['PATH_INFO'] = $oldPathInfo; $_SERVER['REQUEST_URI'] = $oldRequestUri; $_SERVER['QUERY_STRING'] = $oldQueryString;
+		$_SERVER['REQUEST_URI'] = $oldRequestUri; $_SERVER['QUERY_STRING'] = $oldQueryString;
 		foreach ( $oldValues as $key => $value ) {
 			$_REQUEST[$key] = $value;
 		}
