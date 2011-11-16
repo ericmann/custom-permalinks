@@ -4,7 +4,7 @@ Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Tags: permalink, url, link, address, custom, redirect
 Requires at least: 2.6
 Tested up to: 3.2.1
-Stable tag: 0.7.7
+Stable tag: 0.7.8
 
 Set custom permalinks on a per-post, per-tag or per-category basis.
 
@@ -14,6 +14,12 @@ Lay out your site the way *you* want it. Set the URL of any post, page, tag or c
 Old permalinks will redirect properly to the new address.  Custom Permalinks gives you ultimate control
 over your site structure.
 
+Be warned: *This plugin is not a replacement for WordPress's built-in permalink system*. Check your WordPress
+administration's "Permalinks" settings page first, to make sure that this doesn't already meet your needs.
+
+This plugin is only useful for assigning custom permalinks for *individual* posts, pages, tags or categories. 
+It will not apply whole permalink structures, or automatically apply a category's custom permalink to the posts 
+within that category.
 
 == Installation ==
 
@@ -27,6 +33,7 @@ over your site structure.
 
  * Support for non-ASCII characters in URLs
  * Fixed bug where adding a new tag when saving a post with a custom permalink attaches that permalink to the new tag
+ * Some compatibility fixes for WP 3.2.1
 
 = 0.7.7 =
 
