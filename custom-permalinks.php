@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Description: Set custom permalinks on a per-post basis
-Version: 0.7.8
+Version: 0.7.9
 Author: Michael Tyson
 Author URI: http://atastypixel.com/blog
 */
@@ -106,7 +106,7 @@ function custom_permalinks_redirect() {
 	if ( is_single() || is_page() ) {
 		$post = $wp_query->post;
 		$custom_permalink = get_post_meta( $post->ID, 'custom_permalink', true );
-		$original_permalink = ( $post->post_type == 'post' ? custom_permalinks_original_post_link( $post->ID ) : custom_permalinks_original_page_link( $post->ID ) );
+		$original_permalink = ( $post->post_type == 'page' ? custom_permalinks_original_page_link( $post->ID ) : custom_permalinks_original_post_link( $post->ID ) );
 	} else if ( is_tag() || is_category() ) {
 		$theTerm = $wp_query->get_queried_object();
 		$custom_permalink = custom_permalinks_permalink_for_term($theTerm->term_id);
@@ -158,14 +158,15 @@ function custom_permalinks_request($query) {
 	
 	if ( !$request ) return $query;
 	
-	$sql = "SELECT $wpdb->posts.ID, $wpdb->postmeta.meta_value, $wpdb->posts.post_type FROM $wpdb->posts ".
-				" LEFT JOIN $wpdb->postmeta ON ($wpdb->posts.ID = $wpdb->postmeta.post_id) WHERE ".
-				"	meta_key = 'custom_permalink' AND ".
-				"	meta_value != '' AND ".
-				"	( meta_value = LEFT('".mysql_escape_string($request_noslash)."', LENGTH(meta_value)) OR ".
-				"	  meta_value = LEFT('".mysql_escape_string($request_noslash."/")."', LENGTH(meta_value)) ) ".
-				" ORDER BY LENGTH(meta_value) DESC";
-	
+	$sql = "SELECT $wpdb->posts.ID, $wpdb->postmeta.meta_value, $wpdb->posts.post_type FROM $wpdb->posts  ".
+				"LEFT JOIN $wpdb->postmeta ON ($wpdb->posts.ID = $wpdb->postmeta.post_id) WHERE ".
+				"  meta_key = 'custom_permalink' AND ".
+				"  meta_value != '' AND ".
+				"  wp_posts.post_status = 'publish' AND ".
+				"  ( meta_value = LEFT('".mysql_escape_string($request_noslash)."', LENGTH(meta_value)) OR ".
+				"    meta_value = LEFT('".mysql_escape_string($request_noslash."/")."', LENGTH(meta_value)) ) ".
+				"ORDER BY LENGTH(meta_value) DESC";
+
 	$posts = $wpdb->get_results($sql);
 	
 	if ( $posts ) {
@@ -175,11 +176,11 @@ function custom_permalinks_request($query) {
 		if ( $request_noslash == trim($posts[0]->meta_value,'/') ) 
 			$_CPRegisteredURL = $request;
 				
-		$originalUrl = 	preg_replace('@/+@', '/', str_replace( trim($posts[0]->meta_value,'/'),
-							       ( $posts[0]->post_type == 'post' ? 
-											custom_permalinks_original_post_link($posts[0]->ID) 
-											: custom_permalinks_original_page_link($posts[0]->ID) ),
-								   $request_noslash ));
+		$originalUrl = 	preg_replace( '@/+@', '/', str_replace( trim( $posts[0]->meta_value,'/' ),
+									( $posts[0]->post_type == 'page' ? 
+											custom_permalinks_original_page_link($posts[0]->ID) 
+											: custom_permalinks_original_post_link($posts[0]->ID) ),
+								   $request_noslash ) );
 	}
 	
 	if ( !$originalUrl ) {
@@ -279,13 +280,13 @@ function custom_permalink_get_sample_permalink_html($html, $id, $new_title, $new
 	
 	ob_start();
 	?>
-	<?php custom_permalinks_form($permalink, ($post->post_type == "post" ? custom_permalinks_original_post_link($id) : custom_permalinks_original_page_link($id)), false); ?>
+	<?php custom_permalinks_form($permalink, ($post->post_type == "page" ? custom_permalinks_original_page_link($id) : custom_permalinks_original_post_link($id)), false); ?>
 	<?php
 	$content = ob_get_contents();
 	ob_end_clean();
     
     if ( 'publish' == $post->post_status ) {
-		$view_post = 'post' == $post->post_type ? __('View Post') : __('View Page');
+        $view_post = 'page' == $post->post_type ? __('View Page') : __('View Post');
 	}
 	
 	if ( preg_match("@view-post-btn.*?href='([^']+)'@s", $html, $matches) ) {
@@ -618,8 +619,8 @@ function custom_permalinks_admin_rows() {
 	
 	// List posts/pages
 	global $wpdb;
-	$query = "SELECT $wpdb->posts.* FROM $wpdb->posts LEFT JOIN $wpdb->postmeta ON ($wpdb->posts.ID = $wpdb->postmeta.post_id) WHERE ".
-	 			"$wpdb->postmeta.meta_key = 'custom_permalink' AND $wpdb->postmeta.meta_value != ''";
+	$query = "SELECT $wpdb->posts.* FROM $wpdb->posts LEFT JOIN $wpdb->postmeta ON ($wpdb->posts.ID = $wpdb->postmeta.post_id) WHERE 
+	 		$wpdb->postmeta.meta_key = 'custom_permalink' AND $wpdb->postmeta.meta_value != '';";
 	$posts = $wpdb->get_results($query);
 	foreach ( $posts as $post ) {
 		$row = array();
@@ -642,9 +643,11 @@ function custom_permalinks_admin_rows() {
  * @since 0.1
  */
 function custom_permalinks_original_post_link($post_id) {
-	remove_filter( 'post_link', 'custom_permalinks_post_link', 10, 2 );
-	$originalPermalink = ltrim(str_replace(get_home_url(), '', get_permalink( $post_id )), '/');
-	add_filter( 'post_link', 'custom_permalinks_post_link', 10, 2 );
+	remove_filter( 'post_link', 'custom_permalinks_post_link', 10, 2 ); // original hook
+	remove_filter( 'post_type_link', 'custom_permalinks_post_link', 10, 2 );
+	$originalPermalink = ltrim(str_replace(get_option('home'), '', get_permalink( $post_id )), '/');
+	add_filter( 'post_link', 'custom_permalinks_post_link', 10, 2 ); // original hook
+	add_filter( 'post_type_link', 'custom_permalinks_post_link', 10, 2 );
 	return $originalPermalink;
 }
 
@@ -727,6 +730,7 @@ $v = explode('.', get_bloginfo('version'));
 
 add_action( 'template_redirect', 'custom_permalinks_redirect', 5 );
 add_filter( 'post_link', 'custom_permalinks_post_link', 10, 2 );
+add_filter( 'post_type_link', 'custom_permalinks_post_link', 10, 2 );
 add_filter( 'page_link', 'custom_permalinks_page_link', 10, 2 );
 add_filter( 'tag_link', 'custom_permalinks_term_link', 10, 2 );
 add_filter( 'category_link', 'custom_permalinks_term_link', 10, 2 );

@@ -29,6 +29,10 @@ within that category.
 
 == Changelog ==
 
+= 0.7.9 =
+
+ * Support for custom post types, by Balázs Németh
+
 = 0.7.8 =
 
  * Support for non-ASCII characters in URLs
