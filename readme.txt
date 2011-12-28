@@ -4,7 +4,7 @@ Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Tags: permalink, url, link, address, custom, redirect
 Requires at least: 2.6
 Tested up to: 3.2.1
-Stable tag: 0.7.8
+Stable tag: 0.7.9
 
 Set custom permalinks on a per-post, per-tag or per-category basis.
 
@@ -28,6 +28,10 @@ within that category.
 3. Edit any post, page, tag or category to set a custom permalink.
 
 == Changelog ==
+
+= 0.7.10 =
+
+ * Fix for 404 error on static front page with custom permalink set, by Eric TF Bat
 
 = 0.7.9 =
 

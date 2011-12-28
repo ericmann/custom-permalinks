@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Description: Set custom permalinks on a per-post basis
-Version: 0.7.9
+Version: 0.7.10
 Author: Michael Tyson
 Author URI: http://atastypixel.com/blog
 */
@@ -148,7 +148,7 @@ function custom_permalinks_request($query) {
 	// First, search for a matching custom permalink, and if found, generate the corresponding
 	// original URL
 	
-	$originalUrl = '';
+	$originalUrl = NULL;
 	
 	// Get request URI, strip parameters and /'s
 	$url = parse_url(get_bloginfo('url')); $url = $url['path'];
@@ -165,7 +165,7 @@ function custom_permalinks_request($query) {
 				"  wp_posts.post_status = 'publish' AND ".
 				"  ( meta_value = LEFT('".mysql_escape_string($request_noslash)."', LENGTH(meta_value)) OR ".
 				"    meta_value = LEFT('".mysql_escape_string($request_noslash."/")."', LENGTH(meta_value)) ) ".
-				"ORDER BY LENGTH(meta_value) DESC";
+				"ORDER BY LENGTH(meta_value) DESC LIMIT 1";
 
 	$posts = $wpdb->get_results($sql);
 	
@@ -183,7 +183,7 @@ function custom_permalinks_request($query) {
 								   $request_noslash ) );
 	}
 	
-	if ( !$originalUrl ) {
+	if ( $originalUrl === NULL ) {
 	    // See if any terms have a matching permalink
 		$table = get_option('custom_permalink_table');
 		if ( !$table ) return $query;
@@ -211,7 +211,7 @@ function custom_permalinks_request($query) {
 		}
 	}
 		
-	if ( $originalUrl ) {
+	if ( $originalUrl !== NULL ) {
 		$originalUrl = str_replace('//', '/', $originalUrl);
 		
 		if ( ($pos=strpos($_SERVER['REQUEST_URI'], '?')) !== false ) {
