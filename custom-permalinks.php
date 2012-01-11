@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Description: Set custom permalinks on a per-post basis
-Version: 0.7.10
+Version: 0.7.11
 Author: Michael Tyson
 Author URI: http://atastypixel.com/blog
 */
@@ -162,7 +162,6 @@ function custom_permalinks_request($query) {
 				"LEFT JOIN $wpdb->postmeta ON ($wpdb->posts.ID = $wpdb->postmeta.post_id) WHERE ".
 				"  meta_key = 'custom_permalink' AND ".
 				"  meta_value != '' AND ".
-				"  wp_posts.post_status = 'publish' AND ".
 				"  ( meta_value = LEFT('".mysql_escape_string($request_noslash)."', LENGTH(meta_value)) OR ".
 				"    meta_value = LEFT('".mysql_escape_string($request_noslash."/")."', LENGTH(meta_value)) ) ".
 				"ORDER BY LENGTH(meta_value) DESC LIMIT 1";
