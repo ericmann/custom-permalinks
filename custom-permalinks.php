@@ -256,8 +256,12 @@ function custom_permalinks_request($query) {
  */
 function custom_permalinks_trailingslash($string, $type) {     
 	global $_CPRegisteredURL;
-	if ( trim($_CPRegisteredURL,'/') == trim($string,'/') ) {
-		return ($string{0} == '/' ? '/' : '') . $_CPRegisteredURL;
+
+	$url = parse_url(get_bloginfo('url'));
+	$request = ltrim(substr($string, strlen($url['path'])),'/');
+
+	if ( trim($_CPRegisteredURL,'/') == trim($request,'/') ) {
+		return ($string{0} == '/' ? '/' : '') . trailingslashit($url['path']) . $_CPRegisteredURL;
 	}
 	return $string;
 }

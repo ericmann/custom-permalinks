@@ -29,6 +29,11 @@ within that category.
 
 == Changelog ==
 
+= 0.7.11 =
+
+ * Fixed issue with pending/draft posts with permalinks
+ * Fixed infinite redirect issue with permalinks without trailing slash, on blogs not hosted in the webroot
+
 = 0.7.10 =
 
  * Fix for 404 error on static front page with custom permalink set, by Eric TF Bat
