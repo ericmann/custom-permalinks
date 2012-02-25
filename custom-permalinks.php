@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Description: Set custom permalinks on a per-post basis
-Version: 0.7.11
+Version: 0.7.12
 Author: Michael Tyson
 Author URI: http://atastypixel.com/blog
 */
@@ -259,6 +259,8 @@ function custom_permalinks_trailingslash($string, $type) {
 
 	$url = parse_url(get_bloginfo('url'));
 	$request = ltrim(substr($string, strlen($url['path'])),'/');
+
+	if ( !trim($request) ) return $string;
 
 	if ( trim($_CPRegisteredURL,'/') == trim($request,'/') ) {
 		return ($string{0} == '/' ? '/' : '') . trailingslashit($url['path']) . $_CPRegisteredURL;
