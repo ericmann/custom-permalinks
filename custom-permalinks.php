@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Description: Set custom permalinks on a per-post basis
-Version: 0.7.12
+Version: 0.7.13
 Author: Michael Tyson
 Author URI: http://atastypixel.com/blog
 */
@@ -664,7 +664,9 @@ function custom_permalinks_original_post_link($post_id) {
  */
 function custom_permalinks_original_page_link($post_id) {
 	remove_filter( 'page_link', 'custom_permalinks_page_link', 10, 2 );
+	remove_filter( 'user_trailingslashit', 'custom_permalinks_trailingslash', 10, 2 );
 	$originalPermalink = ltrim(str_replace(get_home_url(), '', get_permalink( $post_id )), '/');
+	add_filter( 'user_trailingslashit', 'custom_permalinks_trailingslash', 10, 2 );
 	add_filter( 'page_link', 'custom_permalinks_page_link', 10, 2 );
 	return $originalPermalink;
 }
@@ -678,7 +680,9 @@ function custom_permalinks_original_page_link($post_id) {
  */
 function custom_permalinks_original_tag_link($tag_id) {
 	remove_filter( 'tag_link', 'custom_permalinks_term_link', 10, 2 );
+	remove_filter( 'user_trailingslashit', 'custom_permalinks_trailingslash', 10, 2 );
 	$originalPermalink = ltrim(str_replace(get_home_url(), '', get_tag_link($tag_id)), '/');
+	add_filter( 'user_trailingslashit', 'custom_permalinks_trailingslash', 10, 2 );
 	add_filter( 'tag_link', 'custom_permalinks_term_link', 10, 2 );
 	return $originalPermalink;
 }
@@ -691,7 +695,9 @@ function custom_permalinks_original_tag_link($tag_id) {
  */
 function custom_permalinks_original_category_link($category_id) {
 	remove_filter( 'category_link', 'custom_permalinks_term_link', 10, 2 );
+	remove_filter( 'user_trailingslashit', 'custom_permalinks_trailingslash', 10, 2 );
 	$originalPermalink = ltrim(str_replace(get_home_url(), '', get_category_link($category_id)), '/');
+	add_filter( 'user_trailingslashit', 'custom_permalinks_trailingslash', 10, 2 );
 	add_filter( 'category_link', 'custom_permalinks_term_link', 10, 2 );
 	return $originalPermalink;
 }
