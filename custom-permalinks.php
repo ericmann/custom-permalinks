@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Description: Set custom permalinks on a per-post basis
-Version: 0.7.13
+Version: 0.7.14
 Author: Michael Tyson
 Author URI: http://atastypixel.com/blog
 */
@@ -496,6 +496,17 @@ function custom_permalinks_save_term($term, $permalink) {
 	update_option('custom_permalink_table', $table);
 }
 
+/**
+ * Delete post
+ *
+ * @package CustomPermalinks
+ * @since 0.7.14
+ * @author Piero <maltesepiero@gmail.com>
+ */
+function custom_permalinks_delete_permalink( $id ){
+	global $wpdb;
+	$wpdb->query("DELETE FROM $wpdb->postmeta WHERE `meta_key` = 'custom_permalink' AND `post_id` = '".mysql_escape_string($id)."'");
+}
 
 /**
  * Delete term
@@ -764,6 +775,7 @@ add_action( 'edited_post_tag', 'custom_permalinks_save_tag' );
 add_action( 'edited_category', 'custom_permalinks_save_category' );
 add_action( 'create_post_tag', 'custom_permalinks_save_tag' );
 add_action( 'create_category', 'custom_permalinks_save_category' );
+add_action( 'delete_post', 'custom_permalinks_delete_permalink', 10);
 add_action( 'delete_post_tag', 'custom_permalinks_delete_term' );
 add_action( 'delete_post_category', 'custom_permalinks_delete_term' );
 add_action( 'admin_menu', 'custom_permalinks_setup_admin' );
