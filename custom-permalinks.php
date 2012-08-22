@@ -4,7 +4,7 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Description: Set custom permalinks on a per-post basis
-Version: 0.7.14
+Version: 0.7.15
 Author: Michael Tyson
 Author URI: http://atastypixel.com/blog
 */
@@ -93,7 +93,8 @@ function custom_permalinks_term_link($permalink, $term) {
 function custom_permalinks_redirect() {
 	
 	// Get request URI, strip parameters
-	$url = parse_url(get_bloginfo('url')); $url = $url['path'];
+	$url = parse_url(get_bloginfo('url')); 
+	$url = isset($url['path']) ? $url['path'] : '';
 	$request = ltrim(substr($_SERVER['REQUEST_URI'], strlen($url)),'/');
 	if ( ($pos=strpos($request, "?")) ) $request = substr($request, 0, $pos);
 	
@@ -113,7 +114,7 @@ function custom_permalinks_redirect() {
 		$original_permalink = (is_tag() ? custom_permalinks_original_tag_link($theTerm->term_id) :
 							   			  custom_permalinks_original_category_link($theTerm->term_id));
 	}
-	
+
 	if ( $custom_permalink && 
 			(substr($request, 0, strlen($custom_permalink)) != $custom_permalink ||
 			 $request == $custom_permalink."/" ) ) {
@@ -151,23 +152,24 @@ function custom_permalinks_request($query) {
 	$originalUrl = NULL;
 	
 	// Get request URI, strip parameters and /'s
-	$url = parse_url(get_bloginfo('url')); $url = $url['path'];
+	$url = parse_url(get_bloginfo('url'));
+	$url = isset($url['path']) ? $url['path'] : '';
 	$request = ltrim(substr($_SERVER['REQUEST_URI'], strlen($url)),'/');
 	$request = (($pos=strpos($request, '?')) ? substr($request, 0, $pos) : $request);
 	$request_noslash = preg_replace('@/+@','/', trim($request, '/'));
-	
+
 	if ( !$request ) return $query;
 	
 	$sql = "SELECT $wpdb->posts.ID, $wpdb->postmeta.meta_value, $wpdb->posts.post_type FROM $wpdb->posts  ".
 				"LEFT JOIN $wpdb->postmeta ON ($wpdb->posts.ID = $wpdb->postmeta.post_id) WHERE ".
 				"  meta_key = 'custom_permalink' AND ".
 				"  meta_value != '' AND ".
-				"  ( meta_value = LEFT('".mysql_escape_string($request_noslash)."', LENGTH(meta_value)) OR ".
-				"    meta_value = LEFT('".mysql_escape_string($request_noslash."/")."', LENGTH(meta_value)) ) ".
+				"  ( LOWER(meta_value) = LEFT(LOWER('".mysql_escape_string($request_noslash)."'), LENGTH(meta_value)) OR ".
+				"    LOWER(meta_value) = LEFT(LOWER('".mysql_escape_string($request_noslash."/")."'), LENGTH(meta_value)) ) ".
 				"ORDER BY LENGTH(meta_value) DESC LIMIT 1";
 
 	$posts = $wpdb->get_results($sql);
-	
+
 	if ( $posts ) {
 		// A post matches our request
 		
@@ -175,13 +177,13 @@ function custom_permalinks_request($query) {
 		if ( $request_noslash == trim($posts[0]->meta_value,'/') ) 
 			$_CPRegisteredURL = $request;
 				
-		$originalUrl = 	preg_replace( '@/+@', '/', str_replace( trim( $posts[0]->meta_value,'/' ),
+		$originalUrl = 	preg_replace( '@/+@', '/', str_replace( trim( strtolower($posts[0]->meta_value),'/' ),
 									( $posts[0]->post_type == 'page' ? 
 											custom_permalinks_original_page_link($posts[0]->ID) 
 											: custom_permalinks_original_post_link($posts[0]->ID) ),
-								   $request_noslash ) );
+								   strtolower($request_noslash) ) );
 	}
-	
+
 	if ( $originalUrl === NULL ) {
 	    // See if any terms have a matching permalink
 		$table = get_option('custom_permalink_table');
@@ -230,7 +232,7 @@ function custom_permalinks_request($query) {
 			$oldValues[$key] = $_REQUEST[$key];
 			$_REQUEST[$key] = $_GET[$key] = $value;
 		}
-				
+
 		// Re-run the filter, now with original environment in place
 		remove_filter( 'request', 'custom_permalinks_request', 10, 1 );
 		global $wp;
