@@ -260,12 +260,13 @@ function custom_permalinks_trailingslash($string, $type) {
 	global $_CPRegisteredURL;
 
 	$url = parse_url(get_bloginfo('url'));
-	$request = ltrim(substr($string, strlen($url['path'])),'/');
+	$url = isset($url['path']) ? $url['path'] : '';
+	$request = ltrim(substr($string, strlen($url)),'/');
 
 	if ( !trim($request) ) return $string;
 
 	if ( trim($_CPRegisteredURL,'/') == trim($request,'/') ) {
-		return ($string{0} == '/' ? '/' : '') . trailingslashit($url['path']) . $_CPRegisteredURL;
+		return ($string{0} == '/' ? '/' : '') . trailingslashit($url) . $_CPRegisteredURL;
 	}
 	return $string;
 }
