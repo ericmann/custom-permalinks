@@ -4,7 +4,11 @@ Plugin Name: Custom Permalinks
 Plugin URI: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Donate link: http://atastypixel.com/blog/wordpress/plugins/custom-permalinks/
 Description: Set custom permalinks on a per-post basis
+<<<<<<< HEAD
 Version: 0.7.15.1
+=======
+Version: 0.7.16
+>>>>>>> master
 Author: Michael Tyson
 Author URI: http://atastypixel.com/blog
 */
@@ -164,8 +168,8 @@ function custom_permalinks_request($query) {
 				"LEFT JOIN $wpdb->postmeta ON ($wpdb->posts.ID = $wpdb->postmeta.post_id) WHERE ".
 				"  meta_key = 'custom_permalink' AND ".
 				"  meta_value != '' AND ".
-				"  ( LOWER(meta_value) = LEFT(LOWER('".mysql_escape_string($request_noslash)."'), LENGTH(meta_value)) OR ".
-				"    LOWER(meta_value) = LEFT(LOWER('".mysql_escape_string($request_noslash."/")."'), LENGTH(meta_value)) ) ".
+				"  ( LOWER(meta_value) = LEFT(LOWER('".mysql_real_escape_string($request_noslash)."'), LENGTH(meta_value)) OR ".
+				"    LOWER(meta_value) = LEFT(LOWER('".mysql_real_escape_string($request_noslash."/")."'), LENGTH(meta_value)) ) ".
 				"ORDER BY LENGTH(meta_value) DESC LIMIT 1";
 
 	$posts = $wpdb->get_results($sql);
@@ -508,7 +512,7 @@ function custom_permalinks_save_term($term, $permalink) {
  */
 function custom_permalinks_delete_permalink( $id ){
 	global $wpdb;
-	$wpdb->query("DELETE FROM $wpdb->postmeta WHERE `meta_key` = 'custom_permalink' AND `post_id` = '".mysql_escape_string($id)."'");
+	$wpdb->query("DELETE FROM $wpdb->postmeta WHERE `meta_key` = 'custom_permalink' AND `post_id` = '".mysql_real_escape_string($id)."'");
 }
 
 /**
@@ -560,9 +564,9 @@ function custom_permalinks_options_page() {
 		$redirectUrl = $_SERVER['REQUEST_URI'];
 		?>
 		<script type="text/javascript">
-		document.location = '<?php echo $redirectUrl ?>';
+		document.location = '<?php echo $redirectUrl ?>'
 		</script>
-		<?php
+		<?php ;
 	}
 	
 	?>
@@ -631,7 +635,7 @@ function custom_permalinks_admin_rows() {
 			$row['permalink'] = get_home_url()."/".$permalink;
 			$row['type'] = ucwords($info['kind']);
 			$row['title'] = $term->name;
-			$row['editlink'] = ( $info['kind'] == 'tag' ? 'edit-tags.php?action=edit&tag_ID='.$info['id'] : 'categories.php?action=edit&cat_ID='.$info['id'] );
+			$row['editlink'] = ( $info['kind'] == 'tag' ? 'edit-tags.php?action=edit&taxonomy=post_tag&tag_ID='.$info['id'] : 'edit-tags.php?action=edit&taxonomy=category&tag_ID='.$info['id'] );
 			$rows[] = $row;
 		}
 	}
@@ -751,36 +755,43 @@ if ( !function_exists("get_home_url") ) {
     }
 }
 
-$v = explode('.', get_bloginfo('version'));
+# Check whether we're running within the WP environment, to avoid showing errors like 
+# "Fatal error: Call to undefined function get_bloginfo() in C:\xampp\htdocs\custom-permalinks\custom-permalinks.php on line 753" 
+# and similar errors that occurs when the script is called directly to e.g. find out the full path.
 
-add_action( 'template_redirect', 'custom_permalinks_redirect', 5 );
-add_filter( 'post_link', 'custom_permalinks_post_link', 10, 2 );
-add_filter( 'post_type_link', 'custom_permalinks_post_link', 10, 2 );
-add_filter( 'page_link', 'custom_permalinks_page_link', 10, 2 );
-add_filter( 'tag_link', 'custom_permalinks_term_link', 10, 2 );
-add_filter( 'category_link', 'custom_permalinks_term_link', 10, 2 );
-add_filter( 'request', 'custom_permalinks_request', 10, 1 );
-add_filter( 'user_trailingslashit', 'custom_permalinks_trailingslash', 10, 2 );
+if (function_exists("add_action") && function_exists("add_filter")) {
+	add_action( 'template_redirect', 'custom_permalinks_redirect', 5 );
+	add_filter( 'post_link', 'custom_permalinks_post_link', 10, 2 );
+	add_filter( 'post_type_link', 'custom_permalinks_post_link', 10, 2 );
+	add_filter( 'page_link', 'custom_permalinks_page_link', 10, 2 );
+	add_filter( 'tag_link', 'custom_permalinks_term_link', 10, 2 );
+	add_filter( 'category_link', 'custom_permalinks_term_link', 10, 2 );
+	add_filter( 'request', 'custom_permalinks_request', 10, 1 );
+	add_filter( 'user_trailingslashit', 'custom_permalinks_trailingslash', 10, 2 );
 
-if ( $v[0] >= 2 ) {
-    add_filter( 'get_sample_permalink_html', 'custom_permalink_get_sample_permalink_html', 10, 4 );
-} else {
-    add_action( 'edit_form_advanced', 'custom_permalinks_post_options' );
-    add_action( 'edit_page_form', 'custom_permalinks_page_options' );
+	if (function_exists("get_bloginfo")) {
+		$v = explode('.', get_bloginfo('version'));
+	}
+	
+	if ( $v[0] >= 2 ) {
+		add_filter( 'get_sample_permalink_html', 'custom_permalink_get_sample_permalink_html', 10, 4 );
+	} else {
+		add_action( 'edit_form_advanced', 'custom_permalinks_post_options' );
+		add_action( 'edit_page_form', 'custom_permalinks_page_options' );
+	}
+
+	add_action( 'edit_tag_form', 'custom_permalinks_term_options' );
+	add_action( 'add_tag_form', 'custom_permalinks_term_options' );
+	add_action( 'edit_category_form', 'custom_permalinks_term_options' );
+	add_action( 'save_post', 'custom_permalinks_save_post' );
+	add_action( 'save_page', 'custom_permalinks_save_post' );
+	add_action( 'edited_post_tag', 'custom_permalinks_save_tag' );
+	add_action( 'edited_category', 'custom_permalinks_save_category' );
+	add_action( 'create_post_tag', 'custom_permalinks_save_tag' );
+	add_action( 'create_category', 'custom_permalinks_save_category' );
+	add_action( 'delete_post', 'custom_permalinks_delete_permalink', 10);
+	add_action( 'delete_post_tag', 'custom_permalinks_delete_term' );
+	add_action( 'delete_post_category', 'custom_permalinks_delete_term' );
+	add_action( 'admin_menu', 'custom_permalinks_setup_admin' );
 }
-
-add_action( 'edit_tag_form', 'custom_permalinks_term_options' );
-add_action( 'add_tag_form', 'custom_permalinks_term_options' );
-add_action( 'edit_category_form', 'custom_permalinks_term_options' );
-add_action( 'save_post', 'custom_permalinks_save_post' );
-add_action( 'save_page', 'custom_permalinks_save_post' );
-add_action( 'edited_post_tag', 'custom_permalinks_save_tag' );
-add_action( 'edited_category', 'custom_permalinks_save_category' );
-add_action( 'create_post_tag', 'custom_permalinks_save_tag' );
-add_action( 'create_category', 'custom_permalinks_save_category' );
-add_action( 'delete_post', 'custom_permalinks_delete_permalink', 10);
-add_action( 'delete_post_tag', 'custom_permalinks_delete_term' );
-add_action( 'delete_post_category', 'custom_permalinks_delete_term' );
-add_action( 'admin_menu', 'custom_permalinks_setup_admin' );
-
 ?>
