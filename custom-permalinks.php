@@ -435,7 +435,14 @@ function custom_permalinks_save_post($id) {
 	if ( !isset($_REQUEST['custom_permalinks_edit']) ) return;
 	
 	delete_post_meta( $id, 'custom_permalink' );
-	
+
+	// http://wordpress.org/support/topic/404-error-potentially-caused-by-revisions
+	// not sure why we should create permalinks on something except actual version of post/page
+	// so... quick and dirty - remove revision's premalink if exists but don't create a new one
+	if (isset($_REQUEST['post_ID']) && $id != $_REQUEST['post_ID']) {
+        return;
+    }	
+
 	$original_link = custom_permalinks_original_post_link($id);
 	$permalink_structure = get_option('permalink_structure');
 	
