@@ -121,7 +121,7 @@ function custom_permalinks_redirect() {
 		// Request doesn't match permalink - redirect
 		$url = $custom_permalink;
 
-		if ( substr($request, 0, strlen($original_permalink)) == $original_permalink &&
+		if ( '' != $original_permalink && substr($request, 0, strlen($original_permalink)) == $original_permalink &&
 				trim($request,'/') != trim($original_permalink,'/') ) {
 			// This is the original link; we can use this url to derive the new one
 			$url = preg_replace('@//*@', '/', str_replace(trim($original_permalink,'/'), trim($custom_permalink,'/'), $request));
