@@ -746,7 +746,7 @@ function custom_permalinks_permalink_for_term($id) {
  * @since 0.1
  */
 function custom_permalinks_setup_admin() {
-	add_management_page( 'Custom Permalinks', 'Custom Permalinks', 5, 'custom_permalinks', 'custom_permalinks_options_page' );
+	add_management_page( 'Custom Permalinks', 'Custom Permalinks', 'edit_pages', 'custom_permalinks', 'custom_permalinks_options_page' );
 	if ( is_admin() )
 		wp_enqueue_script('admin-forms');
 }
