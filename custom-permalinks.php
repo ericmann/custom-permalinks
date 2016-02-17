@@ -265,7 +265,7 @@ function custom_permalinks_trailingslash($string, $type) {
 	if ( !trim($request) ) return $string;
 
 	if ( trim($_CPRegisteredURL,'/') == trim($request,'/') ) {
-		return ($string{0} == '/' ? '/' : '') . trailingslashit($url['path']) . $_CPRegisteredURL;
+		if(!empty($url['path'])) return ($string{0} == '/' ? '/' : '') . trailingslashit($url['path']) . $_CPRegisteredURL;
 	}
 	return $string;
 }
